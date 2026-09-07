@@ -1,0 +1,628 @@
+PUPPET INSTALLATION — AGENT AND MASTER SETUP
+================================================
+Daily Repository Maintenance Reference
+Environment:
+- Puppet Master: Ubuntu 26.04 LTS in Oracle VirtualBox
+- Puppet Server: 8.7.0
+- Puppet Agent: Windows 11 64-bit, Puppet 8.10.0
+- Puppet Master hostname: puppetmaster
+- Puppet Master IP: 192.168.56.101
+- Puppet Server port: 8140
+- Windows Agent certname: desktop-7mq1kll.lpu.com
+- Puppet environment: production
+
+IMPORTANT:
+- Run Windows commands in PowerShell as Administrator.
+- Run Ubuntu commands in the Ubuntu VirtualBox terminal.
+- The Ubuntu VM must be powered on when the Windows Puppet Agent communicates with the Master.
+- The VirtualBox network used for Master-Agent communication is Host-Only:
+  Windows: 192.168.56.1
+  Ubuntu:  192.168.56.101
+- Ubuntu also has NAT internet access through 10.0.2.15.
+
+
+================================================
+PART 1 — UBUNTU VIRTUALBOX: BASIC NETWORK CHECK
+================================================
+
+Check internet:
+
+ping -c 4 google.com
+
+Check IP addresses:
+
+ip addr
+
+Expected important address:
+
+192.168.56.101/24
+
+Check hostname:
+
+hostname
+
+Check fully qualified hostname:
+
+hostname -f
+
+Check hostname resolution:
+
+getent hosts puppetmaster
+
+
+================================================
+PART 2 — UBUNTU: SET PUPPET MASTER HOSTNAME
+================================================
+
+Set hostname:
+
+sudo hostnamectl set-hostname puppetmaster
+
+Edit hosts file:
+
+sudo nano /etc/hosts
+
+Make sure the relevant entries include:
+
+127.0.0.1       localhost
+127.0.1.1       puppetmaster
+192.168.56.101  puppetmaster
+
+Save nano:
+Ctrl+O
+Enter
+Ctrl+X
+
+Verify:
+
+hostname
+
+getent hosts puppetmaster
+
+hostname -I
+
+
+================================================
+PART 3 — UBUNTU: CHECK SYSTEM TIME
+================================================
+
+Check date:
+
+date
+
+Check time synchronization:
+
+timedatectl
+
+Expected:
+
+System clock synchronized: yes
+NTP service: active
+
+Ubuntu 26.04 in this setup uses chrony.
+
+Check chrony:
+
+systemctl status chrony
+
+If needed, restart chrony:
+
+sudo systemctl restart chrony
+
+Check synchronization again:
+
+timedatectl
+
+
+================================================
+PART 4 — UBUNTU: JAVA
+================================================
+
+Check Java:
+
+java --version
+
+If Java is not installed, install Java:
+
+sudo apt update
+
+sudo apt install openjdk-17-jre-headless -y
+
+Verify:
+
+java --version
+
+
+================================================
+PART 5 — UBUNTU: PUPPET SERVER REPOSITORY
+================================================
+
+Install the Puppet 8 repository package.
+
+Example used in this setup:
+
+sudo dpkg -i puppet8-release-jammy.deb
+
+Update package information:
+
+sudo apt update
+
+NOTE:
+The repository package used in the original setup is the Puppet 8 JAMMY repository package.
+Ubuntu itself is Ubuntu 26.04 (Resolute).
+If apt reports repository/time errors, check timedatectl and the repository configuration before continuing.
+
+
+================================================
+PART 6 — UBUNTU: INSTALL PUPPET SERVER
+================================================
+
+Check Puppet Server availability:
+
+apt-cache policy puppetserver
+
+Install Puppet Server:
+
+sudo apt install puppetserver -y
+
+Verify version:
+
+puppetserver -v
+
+Expected in this setup:
+
+puppetserver version: 8.7.0
+
+
+================================================
+PART 7 — UBUNTU: CONFIGURE PUPPET MASTER
+================================================
+
+Check Puppet configuration directory:
+
+sudo find /etc -maxdepth 3 -type f -name "puppet.conf"
+
+In this setup the system Puppet configuration is:
+
+/etc/puppet/puppet.conf
+
+Open it:
+
+sudo nano /etc/puppet/puppet.conf
+
+The main configuration used:
+
+[main]
+server=puppetmaster
+environment=production
+
+Save:
+Ctrl+O
+Enter
+Ctrl+X
+
+Verify server:
+
+sudo puppet config print server --section main
+
+Expected:
+
+puppetmaster
+
+Verify environment:
+
+sudo puppet config print environment --section main
+
+Expected:
+
+production
+
+Verify Master certname:
+
+sudo puppet config print certname --section server
+
+Expected:
+
+puppetmaster
+
+
+================================================
+PART 8 — UBUNTU: START PUPPET SERVER
+================================================
+
+Enable and start Puppet Server:
+
+sudo systemctl enable --now puppetserver
+
+Check status:
+
+sudo systemctl status puppetserver
+
+Expected:
+
+Active: active (running)
+
+Check port 8140:
+
+sudo ss -lntp | grep 8140
+
+Expected:
+
+LISTEN ... *:8140 ... java
+
+Test Puppet Server locally:
+
+curl -k https://puppetmaster:8140/status/v1/simple
+
+Expected:
+
+running
+
+
+================================================
+PART 9 — WINDOWS: NETWORK CHECK
+================================================
+
+Open PowerShell AS ADMINISTRATOR.
+
+Check connection to Puppet Master:
+
+ping 192.168.56.101
+
+Check Puppet Server port:
+
+Test-NetConnection puppetmaster -Port 8140
+
+Expected:
+
+TcpTestSucceeded : True
+
+
+================================================
+PART 10 — WINDOWS: HOSTS FILE
+================================================
+
+Open the Windows hosts file as Administrator:
+
+notepad C:\Windows\System32\drivers\etc\hosts
+
+Add:
+
+192.168.56.101    puppetmaster
+
+Save and close.
+
+Verify:
+
+ping puppetmaster
+
+Expected address:
+
+192.168.56.101
+
+
+================================================
+PART 11 — WINDOWS: OLD PUPPET AGENT CHECK
+================================================
+
+Check Puppet version:
+
+puppet --version
+
+Check Puppet server:
+
+puppet config print server
+
+Check certificate name:
+
+puppet config print certname
+
+Check service:
+
+Get-Service puppet
+
+For the final working setup:
+
+Puppet version: 8.10.0
+Server: puppetmaster
+Certname: desktop-7mq1kll.lpu.com
+Service: Running
+
+
+================================================
+PART 12 — WINDOWS: PUPPET 8 INSTALLATION
+================================================
+
+For Windows 11 64-bit, the Puppet Agent MSI used in this setup was:
+
+C:\Users\Purna\Downloads\puppet-agent-8.10.0-x64.msi
+
+The graphical installer configuration was:
+
+Install location:
+C:\Program Files\Puppet Labs\Puppet\
+
+Puppet Server:
+puppetmaster
+
+At the final installer screen:
+Leave "Disable Windows path length limit" unchecked unless specifically needed.
+Click Finish.
+
+
+================================================
+PART 13 — WINDOWS: VERIFY PUPPET 8
+================================================
+
+Check version:
+
+puppet --version
+
+Expected:
+
+8.10.0
+
+Check server:
+
+puppet config print server
+
+Expected:
+
+puppetmaster
+
+Check certname:
+
+puppet config print certname
+
+Expected:
+
+desktop-7mq1kll.lpu.com
+
+Check environment:
+
+puppet config print environment
+
+Expected:
+
+production
+
+Check service:
+
+Get-Service puppet
+
+Expected:
+
+Status: Running
+
+
+================================================
+PART 14 — WINDOWS: FIRST AGENT RUN
+================================================
+
+Run PowerShell AS ADMINISTRATOR:
+
+puppet agent -t
+
+Successful output should contain lines similar to:
+
+Info: Using environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Notice: Requesting catalog from puppetmaster:8140 (192.168.56.101)
+Notice: Catalog compiled by puppetmaster
+Info: Caching catalog for desktop-7mq1kll.lpu.com
+Info: Applying configuration version '...'
+Notice: Applied catalog in ... seconds
+
+The final important result is:
+
+Notice: Applied catalog in ...
+
+
+================================================
+PART 15 — CERTIFICATE MANAGEMENT
+================================================
+
+On Ubuntu, list pending certificate requests:
+
+sudo puppetserver ca list
+
+List all signed certificates:
+
+sudo puppetserver ca list --all
+
+The Windows certificate in this setup is:
+
+desktop-7mq1kll.lpu.com
+
+To sign a genuinely pending request:
+
+sudo puppetserver ca sign --certname desktop-7mq1kll.lpu.com
+
+IMPORTANT:
+Only sign a certificate when it appears in the pending certificate list.
+If "ca list" says "No certificates to list", use:
+
+sudo puppetserver ca list --all
+
+to check whether the certificate is already signed.
+
+
+================================================
+PART 16 — DAILY MAINTENANCE / HEALTH CHECK
+================================================
+
+UBUNTU:
+
+Check hostname:
+
+hostname
+
+Check IP:
+
+hostname -I
+
+Check time:
+
+timedatectl
+
+Check chrony:
+
+systemctl status chrony
+
+Check Puppet Server:
+
+sudo systemctl status puppetserver
+
+Check Puppet Server port:
+
+sudo ss -lntp | grep 8140
+
+Check Puppet Server response:
+
+curl -k https://puppetmaster:8140/status/v1/simple
+
+Check Puppet Server version:
+
+puppetserver -v
+
+Check certificates:
+
+sudo puppetserver ca list --all
+
+
+WINDOWS:
+
+Check network:
+
+ping puppetmaster
+
+Check Puppet port:
+
+Test-NetConnection puppetmaster -Port 8140
+
+Check Puppet version:
+
+puppet --version
+
+Check Puppet server:
+
+puppet config print server
+
+Check certname:
+
+puppet config print certname
+
+Check environment:
+
+puppet config print environment
+
+Check service:
+
+Get-Service puppet
+
+Run agent:
+
+puppet agent -t
+
+
+================================================
+PART 17 — IMPORTANT CONFIGURATION FILES
+================================================
+
+UBUNTU:
+
+Puppet configuration:
+/etc/puppet/puppet.conf
+
+Puppet Server configuration:
+/etc/puppet/puppetserver/
+
+Windows hosts file:
+/etc/hosts
+
+Windows:
+
+Puppet configuration:
+C:\ProgramData\PuppetLabs\puppet\etc\puppet.conf
+
+Windows Puppet SSL directory:
+C:\ProgramData\PuppetLabs\puppet\etc\ssl
+
+Configuration backup created during setup:
+C:\puppet.conf.backup
+
+
+================================================
+PART 18 — TROUBLESHOOTING COMMANDS
+================================================
+
+UBUNTU — Puppet Server status:
+
+sudo systemctl status puppetserver
+
+UBUNTU — Puppet Server logs:
+
+sudo journalctl -u puppetserver --no-pager
+
+UBUNTU — Recent Puppet Server logs:
+
+sudo journalctl -u puppetserver --since "15 minutes ago" --no-pager
+
+UBUNTU — Port check:
+
+sudo ss -lntp | grep 8140
+
+UBUNTU — CA:
+
+sudo puppetserver ca list --all
+
+
+WINDOWS — Service:
+
+Get-Service puppet
+
+WINDOWS — Server connection:
+
+Test-NetConnection puppetmaster -Port 8140
+
+WINDOWS — Agent run:
+
+puppet agent -t
+
+
+================================================
+FINAL VERIFIED SETUP
+================================================
+
+MASTER:
+Ubuntu 26.04 LTS
+Puppet Server 8.7.0
+Hostname: puppetmaster
+Host-Only IP: 192.168.56.101
+Port: 8140
+
+AGENT:
+Windows 11 Home 64-bit
+Puppet Agent 8.10.0
+Certname: desktop-7mq1kll.lpu.com
+Environment: production
+
+NETWORK:
+Windows Host-Only IP: 192.168.56.1
+Ubuntu Host-Only IP: 192.168.56.101
+
+VERIFICATION:
+Windows can ping puppetmaster.
+Windows can connect to TCP port 8140.
+Puppet Agent successfully requests a catalog.
+Puppet Master successfully compiles the catalog.
+Windows successfully applies the catalog.
+
+FINAL SUCCESS COMMAND:
+
+puppet agent -t
+
+FINAL SUCCESS MESSAGE:
+
+Notice: Applied catalog in ... seconds

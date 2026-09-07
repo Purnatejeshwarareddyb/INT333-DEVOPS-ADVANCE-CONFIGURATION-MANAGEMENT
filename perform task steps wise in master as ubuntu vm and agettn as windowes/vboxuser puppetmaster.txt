@@ -1,0 +1,69 @@
+vboxuser@puppetmaster:~$ cd /etc/puppet/code/environments/production/manifests
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ pwd
+/etc/puppet/code/environments/production/manifests
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ ls
+site.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ nano site.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ cat site.pp
+node default {
+
+  file { 'C:/puppet_test.txt':
+    ensure  => present,
+    content => 'Working on DevOps',
+  }
+
+}
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ sudo puppet parser validate site.pp
+[sudo: authenticate] Password:           
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ sudo puppet config print codedir
+/etc/puppet/code
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ sudo puppet config print manifest
+/etc/puppet/code/environments/production/manifests
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ sudo systemctl restart puppetserver
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ udo systemctl status puppetserver
+Command 'udo' not found, but can be installed with:
+sudo apt install udo
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ sudo systemctl status puppetserver
+● puppetserver.service - Puppet Server
+     Loaded: loaded (/usr/lib/systemd/system/puppetserver.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-09-03 10:53:53 UTC; 18s ago
+ Invocation: 7d23531c784d4a04a76b3dc53ee9be7e
+       Docs: https://puppet.com/docs/puppet/latest/server/about_server.html
+    Process: 5827 ExecStartPre=sh -c echo -n 0 > ${RUNTIME_DIRECTORY}/restart (code=exited, status=0/SUCCESS)
+    Process: 5830 ExecStartPost=sh -c sleep 1; while ! head -c1 ${RUNTIME_DIRECTORY}/restart | grep -q '^1'; do kill -0 $MAINPID && sleep 1 || exit 1>
+   Main PID: 5829 (java)
+      Tasks: 62 (limit: 2799)
+     Memory: 1.5G (peak: 1.5G)
+        CPU: 3min 40.069s
+     CGroup: /system.slice/puppetserver.service
+             └─5829 /usr/bin/java -Xms1g -Xmx1g -Djruby.logger.class=com.puppetlabs.jruby_utils.jruby.Slf4jLogger -Djruby.lib=/usr/share/jruby/lib -X>
+
+Sep 03 10:52:32 puppetmaster systemd[1]: Starting puppetserver.service - Puppet Server...
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by org.jruby.util.StringSupport (file:/usr/share/j>
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: Please consider reporting this to the maintainers of class org.jruby.util.StringSupport
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: A restricted method in java.lang.System has been called
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: java.lang.System::load has been called by com.kenai.jffi.internal.StubLoader in an unnamed module (>
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+Sep 03 10:53:23 puppetmaster java[5829]: WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+Sep 03 10:53:53 puppetmaster systemd[1]: Started puppetserver.service - Puppet Server.
+
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/manifests$ 
+===========================================================================
+  GNU nano 8.7.1                                                           site.pp                                                                    
+node default {
+
+  file { 'C:/puppet_test.txt':
+    ensure  => present,
+    content => 'Working on DevOps',
+  }
+
+  exec { 'Install IIS Web Server':
+    command => 'C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Enable-WindowsOptionalFeature >
+    unless  => 'C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command "(Get-WindowsOptionalFeature -Online -FeatureName IIS-W>
+  }
+
+}
+
+

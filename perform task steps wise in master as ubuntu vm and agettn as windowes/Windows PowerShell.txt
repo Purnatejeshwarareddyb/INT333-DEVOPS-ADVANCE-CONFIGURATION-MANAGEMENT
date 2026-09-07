@@ -1,0 +1,22 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PS C:\WINDOWS\system32> puppet agent -t
+Info: Refreshing CA certificate
+Info: CA certificate is unmodified, using existing CA certificate
+Info: Refreshing CRL
+Info: CRL is unmodified, using existing CRL
+Info: Using environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Notice: Requesting catalog from puppetmaster:8140 (192.168.56.101)
+Notice: Catalog compiled by puppetmaster
+Info: Caching catalog for desktop-7mq1kll.lpu.com
+Info: Applying configuration version '1788433023'
+Notice: Applied catalog in 0.04 seconds
+PS C:\WINDOWS\system32> Test-Path C:\puppet_test.txt
+>> Get-Content C:\puppet_test.txt
+True
+Working on DevOps
+PS C:\WINDOWS\system32>
+
