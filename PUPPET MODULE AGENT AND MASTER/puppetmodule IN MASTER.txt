@@ -1,0 +1,36 @@
+vboxuser@puppetmaster:~$ 
+vboxuser@puppetmaster:~$ 
+vboxuser@puppetmaster:~$ 
+vboxuser@puppetmaster:~$ sudo mkdir -p /etc/puppet/code/environments/production/modules/myapp/manifests
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/modules/myapp/manifests/init.pp
+vboxuser@puppetmaster:~$ /etc/puppet/code/environments/production/manifests
+bash: /etc/puppet/code/environments/production/manifests: Is a directory
+vboxuser@puppetmaster:~$ sudo mkdir -p /etc/puppet/code/environments/production/manifests
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:~$ cat /etc/puppet/code/environments/production/modules/myapp/manifests/init.pp
+class myapp {
+
+  file { 'C:/temp/student.txt':
+    ensure  => file,
+    content => 'Hello from Puppet Module!',
+  }
+
+}
+vboxuser@puppetmaster:~$ cat /etc/puppet/code/environments/production/manifests/site.pp
+include myapp
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/modules/myapp/manifests/init.pp
+vboxuser@puppetmaster:~$ cat /etc/puppet/code/environments/production/modules/myapp/manifests/init.pp
+class myapp {
+
+  file { 'C:/temp':
+    ensure => directory,
+  }
+
+  file { 'C:/temp/student.txt':
+    ensure  => file,
+    content => 'Hello from Puppet Module!',
+    require => File['C:/temp'],
+  }
+
+}
+

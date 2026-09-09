@@ -1,0 +1,30 @@
+Notice: Applied catalog in 0.05 seconds
+PS C:\WINDOWS\system32> puppet agent -t
+Info: Refreshing CA certificate
+Info: CA certificate is unmodified, using existing CA certificate
+Info: Refreshing CRL
+Info: CRL is unmodified, using existing CRL
+Info: Using environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Notice: Requesting catalog from puppetmaster:8140 (192.168.56.101)
+Notice: Catalog compiled by puppetmaster
+Info: Caching catalog for desktop-7mq1kll.lpu.com
+Info: Applying configuration version '1788866709'
+Notice: /Stage[main]/Myapp/File[C:/temp]/ensure: created
+Notice: /Stage[main]/Myapp/File[C:/temp/student.txt]/ensure: defined content as '{sha256}6b6a414f3008d14367ed3fd6f812a9561b0acab4c461333a87926269530375ba'
+Notice: Applied catalog in 0.07 seconds
+PS C:\WINDOWS\system32> Get-Content C:\temp\student.txt
+Hello from Puppet Module!
+PS C:\WINDOWS\system32> Get-Item C:\temp\student.txt
+
+
+    Directory: C:\temp
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        08-09-2026     16:55             25 student.txt
+
+
+PS C:\WINDOWS\system32>
