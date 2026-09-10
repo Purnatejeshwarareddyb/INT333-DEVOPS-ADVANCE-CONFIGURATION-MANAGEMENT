@@ -1,0 +1,1009 @@
+vboxuser@puppetmaster:~$ cd /etc/puppet/code/environments/production/modules
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo mkdir -p employee_portal/{manifests,templates}
+[sudo: authenticate] Password:           
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ ls -R employee_portal
+employee_portal:
+manifests  templates
+
+employee_portal/manifests:
+
+employee_portal/templates:
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ ls -R employee_portal
+employee_portal:
+manifests  templates
+
+employee_portal/manifests:
+
+employee_portal/templates:
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ 
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ 
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo mkdir -p /etc/puppet/code/environments/production/data
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/code/environments/production/data/common.yaml
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ cat /etc/puppet/code/environments/production/data/common.yaml
+portal_name: "Company Employee Information Portal"
+department: "Information Technology"
+company_message: "Welcome to the Company Employee Portal"
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ cat /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+class employee_portal {
+
+  $portal_name = lookup('portal_name')
+  $department = lookup('department')
+  $company_message = lookup('company_message')
+
+  package { 'apache2':
+    ensure => installed,
+  }
+
+  service { 'apache2':
+    ensure  => running,
+    enable  => true,
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal':
+    ensure  => directory,
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0755',
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal/index.html':
+    ensure  => file,
+    content => template('employee_portal/index.html.erb'),
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0644',
+    require => File['/var/www/html/employee_portal'],
+  }
+
+}
+
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ 
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ cat /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title><%= $portal_name %></title>
+</head>
+
+<body>
+
+<h1><%= $company_message %></h1>
+
+<h2><%= $portal_name %></h2>
+
+<p>
+    <strong>Department:</strong>
+    <%= $department %>
+</p>
+
+<p>
+    <strong>Hostname:</strong>
+    <%= $facts['networking']['hostname'] %>
+</p>
+
+<p>
+    <strong>IP Address:</strong>
+    <%= $facts['networking']['ip'] %>
+</p>
+
+<p>
+    <strong>Operating System:</strong>
+    <%= $facts['os']['name'] %>
+</p>
+
+<p>
+    This portal is deployed automatically using Puppet.
+</p>
+
+</body>
+
+</html>
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ cat /etc/puppet/code/environments/production/manifests/site.pp
+include employee_portal
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet parser validate /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet parser validate /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet lookup portal_name --environment production
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet lookup department --environment production
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet lookup company_message --environment production
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo cat /etc/puppet/puppet.conf
+# This file can be used to override the default puppet settings.
+# See the following links for more details on what settings are available:
+# - https://puppet.com/docs/puppet/latest/config_important_settings.html
+# - https://puppet.com/docs/puppet/latest/config_about_settings.html
+# - https://puppet.com/docs/puppet/latest/config_file_main.html
+# - https://puppet.com/docs/puppet/latest/configuration.html
+
+[main]
+server = puppetmaster
+environment = production
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo find /etc/puppet -name "hiera.yaml" -o -name "hiera.conf"
+/etc/puppet/hiera.yaml
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo cat /etc/puppet/hiera.yaml
+---
+# Hiera 5 Global configuration file
+
+version: 5
+
+# defaults:
+#   data_hash: yaml_data
+# hierarchy:
+#  - name: Common
+#    data_hash: yaml_data
+hierarchy: []
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/hiera.yaml
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo cat /etc/puppet/hiera.yaml
+---
+version: 5
+
+defaults:
+  datadir: /etc/puppet/code/environments/%{environment}/data
+  data_hash: yaml_data
+
+hierarchy:
+  - name: Common
+    path: common.yaml
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet lookup portal_name --environment production
+--- Company Employee Information Portal
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet lookup department --environment production
+--- Information Technology
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet lookup company_message --environment production
+--- Welcome to the Company Employee Portal
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter networking.hostname
+puppetmaster
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter networking.ip
+10.0.2.15
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter os.name
+Ubuntu
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet agent --test
+Info: Refreshing CA certificate
+Info: CA certificate is unmodified, using existing CA certificate
+Info: Using environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Notice: /File[/var/cache/puppet/lib/puppet]/ensure: created
+Notice: /File[/var/cache/puppet/lib/puppet/provider]/ensure: created
+Notice: /File[/var/cache/puppet/lib/puppet/provider/mailalias]/ensure: created
+Notice: /File[/var/cache/puppet/lib/puppet/provider/mailalias/aliases.rb]/ensure: defined content as '{sha256}36f6b8f04daace6c200261e9009424a45276cb880d5a48c2d186890ed32ffd47'
+Notice: /File[/var/cache/puppet/lib/puppet/type]/ensure: created
+Notice: /File[/var/cache/puppet/lib/puppet/type/mailalias.rb]/ensure: defined content as '{sha256}dddd3956b653e978ea3d19ac5da486cc20fc856e909e9c6af64b12f6c83a3424'
+Notice: Requesting catalog from puppetmaster:8140 (192.168.56.101)
+Notice: Catalog compiled by puppetmaster
+Error: Could not retrieve catalog from remote server: Error 500 on SERVER: Server Error: Evaluation Error: Error while evaluating a Function Call, Failed to parse template employee_portal/index.html.erb:
+  Filepath: /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+  Line: 21
+  Detail: undefined method `[]' for nil:NilClass
+ (file: /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp, line: 27, column: 16) on node puppetmaster
+Warning: Not using cache on failed catalog
+Error: Could not retrieve catalog; skipping run
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo cat /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title><%= $portal_name %></title>
+</head>
+
+<body>
+
+<h1><%= $company_message %></h1>
+
+<h2><%= $portal_name %></h2>
+
+<p>
+    <strong>Department:</strong>
+    <%= $department %>
+</p>
+
+<p>
+    <strong>Hostname:</strong>
+    <%= $facts['hostname'] %>
+</p>
+
+<p>
+    <strong>IP Address:</strong>
+    <%= $facts['ipaddress'] %>
+</p>
+
+<p>
+    <strong>Operating System:</strong>
+    <%= $facts['os']['name'] %>
+</p>
+
+<p>
+    This portal is deployed automatically using Puppet.
+</p>
+
+</body>
+
+</html>
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter hostname
+puppetmaster
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter ipaddress
+10.0.2.15
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter os.name
+Ubuntu
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet agent --test
+Info: Refreshing CA certificate
+Info: CA certificate is unmodified, using existing CA certificate
+Info: Using environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Notice: Requesting catalog from puppetmaster:8140 (192.168.56.101)
+Notice: Catalog compiled by puppetmaster
+Error: Could not retrieve catalog from remote server: Error 500 on SERVER: Server Error: Evaluation Error: Error while evaluating a Function Call, Failed to parse template employee_portal/index.html.erb:
+  Filepath: /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+  Line: 21
+  Detail: undefined method `[]' for nil:NilClass
+ (file: /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp, line: 27, column: 16) on node puppetmaster
+Warning: Not using cache on failed catalog
+Error: Could not retrieve catalog; skipping run
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo systemctl status apache2
+Unit apache2.service could not be found.
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo cat /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title><%= $portal_name %></title>
+</head>
+
+<body>
+
+<h1><%= $company_message %></h1>
+
+<h2><%= $portal_name %></h2>
+
+<p>
+    <strong>Department:</strong>
+    <%= $department %>
+</p>
+
+<p>
+    <strong>Hostname:</strong>
+    <%= $facts['hostname'] %>
+</p>
+
+<p>
+    <strong>IP Address:</strong>
+    <%= $facts['ipaddress'] %>
+</p>
+
+<p>
+    <strong>Operating System:</strong>
+    <%= $facts['osfamily'] %>
+</p>
+
+<p>
+    This portal is deployed automatically using Puppet.
+</p>
+
+</body>
+
+</html>
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter hostname
+puppetmaster
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter ipaddress
+10.0.2.15
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ facter osfamily
+Debian
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet agent --test
+Info: Refreshing CA certificate
+Info: CA certificate is unmodified, using existing CA certificate
+Info: Using environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Notice: Requesting catalog from puppetmaster:8140 (192.168.56.101)
+Notice: Catalog compiled by puppetmaster
+Error: Could not retrieve catalog from remote server: Error 500 on SERVER: Server Error: Evaluation Error: Error while evaluating a Function Call, Failed to parse template employee_portal/index.html.erb:
+  Filepath: /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+  Line: 21
+  Detail: undefined method `[]' for nil:NilClass
+ (file: /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp, line: 27, column: 16) on node puppetmaster
+Warning: Not using cache on failed catalog
+Error: Could not retrieve catalog; skipping run
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo cat /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+class employee_portal {
+
+  $portal_name = lookup('portal_name')
+  $department = lookup('department')
+  $company_message = lookup('company_message')
+
+  $hostname = $facts['hostname']
+  $ipaddress = $facts['ipaddress']
+  $os = $facts['os']['name']
+
+  package { 'apache2':
+    ensure => installed,
+  }
+
+  service { 'apache2':
+    ensure  => running,
+    enable  => true,
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal':
+    ensure  => directory,
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0755',
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal/index.html':
+    ensure  => file,
+    content => template('employee_portal/index.html.erb'),
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0644',
+    require => File['/var/www/html/employee_portal'],
+  }
+
+}
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ sudo puppet parser validate /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+vboxuser@puppetmaster:/etc/puppet/code/environments/production/modules$ 
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+vboxuser@puppetmaster:~$ sudo puppet apply -e 'notice($facts["networking"]["hostname"])'
+Notice: Scope(Class[main]): puppetmaster
+Notice: Compiled catalog for puppetmaster in environment production in 0.04 seconds
+Notice: Applied catalog in 0.02 seconds
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+class employee_portal {
+
+  $portal_name = lookup('portal_name')
+  $department = lookup('department')
+  $company_message = lookup('company_message')
+
+  $hostname = $facts['networking']['hostname']
+  $ipaddress = $facts['networking']['ip']
+  $os = $facts['os']['name']
+
+  package { 'apache2':
+    ensure => installed,
+  }
+
+  service { 'apache2':
+    ensure  => running,
+    enable  => true,
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal':
+    ensure  => directory,
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0755',
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal/index.html':
+    ensure  => file,
+    content => template('employee_portal/index.html.erb'),
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0644',
+    require => File['/var/www/html/employee_portal'],
+  }
+
+}
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title><%= @portal_name %></title>
+</head>
+
+<body>
+
+<h1><%= @company_message %></h1>
+
+<h2><%= @portal_name %></h2>
+
+<p>
+    <strong>Department:</strong>
+    <%= @department %>
+</p>
+
+<p>
+    <strong>Hostname:</strong>
+    <%= @hostname %>
+</p>
+
+<p>
+    <strong>IP Address:</strong>
+    <%= @ipaddress %>
+</p>
+
+<p>
+    <strong>Operating System:</strong>
+    <%= @os %>
+</p>
+
+<p>
+    This portal is deployed automatically using Puppet.
+</p>
+
+</body>
+
+</html>
+vboxuser@puppetmaster:~$ sudo puppet parser validate /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+vboxuser@puppetmaster:~$ sudo puppet parser validate /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:~$ sudo puppet agent --test
+Info: Refreshing CA certificate
+Info: CA certificate is unmodified, using existing CA certificate
+Info: Using environment 'production'
+Info: Retrieving pluginfacts
+Info: Retrieving plugin
+Notice: Requesting catalog from puppetmaster:8140 (192.168.56.101)
+Notice: Catalog compiled by puppetmaster
+Info: Caching catalog for puppetmaster
+Info: Applying configuration version '1789018154'
+Notice: /Stage[main]/Employee_portal/File[/var/www/html/employee_portal/index.html]/content: 
+--- /var/www/html/employee_portal/index.html	2026-09-10 05:21:33.967556863 +0000
++++ /tmp/puppet-file20260910-9299-g3g4fc	2026-09-10 05:29:17.812156610 +0000
+@@ -2,33 +2,33 @@
+ <html>
+ 
+ <head>
+-    <title></title>
++    <title>Company Employee Information Portal</title>
+ </head>
+ 
+ <body>
+ 
+-<h1></h1>
++<h1>Welcome to the Company Employee Portal</h1>
+ 
+-<h2></h2>
++<h2>Company Employee Information Portal</h2>
+ 
+ <p>
+     <strong>Department:</strong>
+-    
++    Information Technology
+ </p>
+ 
+ <p>
+     <strong>Hostname:</strong>
+-    
++    puppetmaster
+ </p>
+ 
+ <p>
+     <strong>IP Address:</strong>
+-    
++    10.0.2.15
+ </p>
+ 
+ <p>
+     <strong>Operating System:</strong>
+-    
++    Ubuntu
+ </p>
+ 
+ <p>
+
+Notice: /Stage[main]/Employee_portal/File[/var/www/html/employee_portal/index.html]/content: content changed '{sha256}ea9f9182e68c24afb7ac638259cabaa975a7e703ecf331a66b80e272357a1a39' to '{sha256}65484cc35b7fe2bf8e9847bdb3a0e2fce0954d7562862bfae8033be50a1723ea'
+Notice: Applied catalog in 1.02 seconds
+vboxuser@puppetmaster:~$ sudo cat /var/www/html/employee_portal/index.html
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Company Employee Information Portal</title>
+</head>
+
+<body>
+
+<h1>Welcome to the Company Employee Portal</h1>
+
+<h2>Company Employee Information Portal</h2>
+
+<p>
+    <strong>Department:</strong>
+    Information Technology
+</p>
+
+<p>
+    <strong>Hostname:</strong>
+    puppetmaster
+</p>
+
+<p>
+    <strong>IP Address:</strong>
+    10.0.2.15
+</p>
+
+<p>
+    <strong>Operating System:</strong>
+    Ubuntu
+</p>
+
+<p>
+    This portal is deployed automatically using Puppet.
+</p>
+
+</body>
+
+</html>
+vboxuser@puppetmaster:~$ 
+
+==================================================================================================================================================
+=================================================================================================================================================
+Yes. Below is the **complete Practical 5 procedure from starting to successful result**, based on your file and your working setup. I’ve kept the **commands together** and added a **very short definition of why each step is used**.
+
+> **Important:** All commands below are for your **Ubuntu Puppet Master/Agent VM**, because this practical deploys Linux Apache files. Do **not** run the practical catalog on your Windows Agent.
+
+# Practical 5 — Dynamic Employee Portal Using Puppet
+
+## 1. Go to Puppet module directory
+
+```bash
+cd /etc/puppet/code/environments/production/modules
+```
+
+**Why:** Opens the location where Puppet modules are stored.
+
+---
+
+## 2. Create the Employee Portal module
+
+```bash
+sudo mkdir -p employee_portal/{manifests,templates}
+```
+
+**Why:** Creates the module with folders for Puppet code and the HTML template.
+
+Check:
+
+```bash
+ls -R employee_portal
+```
+
+---
+
+# 3. Create Hiera data directory
+
+```bash
+cd /etc/puppet/code/environments/production
+sudo mkdir -p data
+```
+
+**Why:** Hiera stores configuration/data separately from Puppet code.
+
+---
+
+# 4. Create `common.yaml`
+
+```bash
+sudo nano data/common.yaml
+```
+
+Put exactly:
+
+```yaml
+portal_name: "Company Employee Information Portal"
+department: "Information Technology"
+company_message: "Welcome to the Company Employee Portal"
+```
+
+Save:
+
+**Ctrl + O → Enter → Ctrl + X**
+
+**Why:** Stores the portal's configurable information using Hiera.
+
+---
+
+# 5. Configure Hiera
+
+```bash
+sudo nano /etc/puppet/hiera.yaml
+```
+
+Put exactly:
+
+```yaml
+---
+version: 5
+
+defaults:
+  datadir: /etc/puppet/code/environments/%{environment}/data
+  data_hash: yaml_data
+
+hierarchy:
+  - name: Common
+    path: common.yaml
+```
+
+Save:
+
+**Ctrl + O → Enter → Ctrl + X**
+
+**Why:** Tells Puppet where to find the Hiera data file.
+
+> Your installation uses `/etc/puppet/code/...`, so use this path instead of `/etc/puppetlabs/code/...` from some standard versions of the practical.
+
+---
+
+# 6. Create `init.pp`
+
+```bash
+sudo nano /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+```
+
+Put:
+
+```puppet
+class employee_portal {
+
+  $portal_name = lookup('portal_name')
+  $department = lookup('department')
+  $company_message = lookup('company_message')
+
+  $hostname = $facts['networking']['hostname']
+  $ipaddress = $facts['networking']['ip']
+  $os = $facts['os']['name']
+
+  package { 'apache2':
+    ensure => installed,
+  }
+
+  service { 'apache2':
+    ensure  => running,
+    enable  => true,
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal':
+    ensure  => directory,
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0755',
+    require => Package['apache2'],
+  }
+
+  file { '/var/www/html/employee_portal/index.html':
+    ensure  => file,
+    content => template('employee_portal/index.html.erb'),
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0644',
+    require => File['/var/www/html/employee_portal'],
+  }
+
+}
+```
+
+Save:
+
+**Ctrl + O → Enter → Ctrl + X**
+
+**Why:** This is the main Puppet manifest. It installs Apache, starts it, creates the portal directory, and generates the HTML page.
+
+---
+
+# 7. Create the ERB template
+
+```bash
+sudo nano /etc/puppet/code/environments/production/modules/employee_portal/templates/index.html.erb
+```
+
+Put:
+
+```html
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title><%= @portal_name %></title>
+</head>
+
+<body>
+
+<h1><%= @company_message %></h1>
+
+<h2><%= @portal_name %></h2>
+
+<p>
+    <strong>Department:</strong>
+    <%= @department %>
+</p>
+
+<p>
+    <strong>Hostname:</strong>
+    <%= @hostname %>
+</p>
+
+<p>
+    <strong>IP Address:</strong>
+    <%= @ipaddress %>
+</p>
+
+<p>
+    <strong>Operating System:</strong>
+    <%= @os %>
+</p>
+
+<p>
+    This portal is deployed automatically using Puppet.
+</p>
+
+</body>
+
+</html>
+```
+
+Save:
+
+**Ctrl + O → Enter → Ctrl + X**
+
+**Why:** ERB is the HTML template. Puppet fills the `<%= @variable %>` values automatically.
+
+---
+
+# 8. Create `site.pp`
+
+```bash
+sudo nano /etc/puppet/code/environments/production/manifests/site.pp
+```
+
+Put:
+
+```puppet
+include employee_portal
+```
+
+Save:
+
+**Ctrl + O → Enter → Ctrl + X**
+
+**Why:** `site.pp` tells Puppet to apply the Employee Portal module.
+
+---
+
+# 9. Validate `init.pp`
+
+```bash
+sudo puppet parser validate /etc/puppet/code/environments/production/modules/employee_portal/manifests/init.pp
+```
+
+**Why:** Checks the Puppet syntax.
+
+**No output = correct.**
+
+---
+
+# 10. Validate `site.pp`
+
+```bash
+sudo puppet parser validate /etc/puppet/code/environments/production/manifests/site.pp
+```
+
+**Why:** Checks the `site.pp` syntax.
+
+**No output = correct.**
+
+---
+
+# 11. Test Hiera
+
+```bash
+sudo puppet lookup portal_name --environment production
+```
+
+Expected:
+
+```text
+--- Company Employee Information Portal
+```
+
+Then:
+
+```bash
+sudo puppet lookup department --environment production
+```
+
+Expected:
+
+```text
+--- Information Technology
+```
+
+Then:
+
+```bash
+sudo puppet lookup company_message --environment production
+```
+
+Expected:
+
+```text
+--- Welcome to the Company Employee Portal
+```
+
+**Why:** Confirms Puppet can correctly read the Hiera values.
+
+---
+
+# 12. Test Facter
+
+```bash
+facter networking.hostname
+```
+
+```bash
+facter networking.ip
+```
+
+```bash
+facter os.name
+```
+
+Expected values on your VM:
+
+```text
+puppetmaster
+10.0.2.15
+Ubuntu
+```
+
+**Why:** Facter provides system information automatically to Puppet.
+
+---
+
+# 13. Run Puppet Agent
+
+```bash
+sudo puppet agent --test
+```
+
+**Why:** The Puppet Agent contacts the Puppet Master, receives the catalog, and applies the configuration.
+
+You should see something similar to:
+
+```text
+Notice: Requesting catalog from puppetmaster:8140
+Notice: Catalog compiled by puppetmaster
+Info: Applying configuration version ...
+Notice: Applied catalog in ...
+```
+
+Your final successful run also generated the HTML containing the Hiera and Facter values. 
+
+---
+
+# 14. Check Apache
+
+```bash
+sudo systemctl status apache2
+```
+
+**Why:** Confirms that Apache is running.
+
+Look for:
+
+```text
+active (running)
+```
+
+Press:
+
+```text
+q
+```
+
+to exit.
+
+---
+
+# 15. Check generated HTML
+
+```bash
+sudo cat /var/www/html/employee_portal/index.html
+```
+
+**Why:** Confirms that Puppet actually generated the final HTML file.
+
+You should see information such as:
+
+```text
+Company Employee Information Portal
+Welcome to the Company Employee Portal
+Information Technology
+puppetmaster
+10.0.2.15
+Ubuntu
+```
+
+This matches the successful generated HTML from your practical. 
+
+---
+
+# 16. Open the Employee Portal
+
+Open your browser and enter:
+
+```text
+http://localhost/employee_portal/
+```
+
+**Why:** Apache serves the HTML page through the browser.
+
+Your final result should display:
+
+```text
+Welcome to the Company Employee Portal
+
+Company Employee Information Portal
+
+Department: Information Technology
+
+Hostname: puppetmaster
+
+IP Address: 10.0.2.15
+
+Operating System: Ubuntu
+
+This portal is deployed automatically using Puppet.
+```
+
+---
+
+# Final folder structure
+
+After completing everything, your structure should be:
+
+```text
+/etc/puppet/
+├── hiera.yaml
+└── code/
+    └── environments/
+        └── production/
+            ├── data/
+            │   └── common.yaml
+            ├── manifests/
+            │   └── site.pp
+            └── modules/
+                └── employee_portal/
+                    ├── manifests/
+                    │   └── init.pp
+                    └── templates/
+                        └── index.html.erb
+```
+
+## Super-short order to remember
+
+```text
+1. Create module
+2. Create Hiera data
+3. Configure Hiera
+4. Write init.pp
+5. Write ERB template
+6. Write site.pp
+7. Validate Puppet files
+8. Test Hiera
+9. Test Facter
+10. Run Puppet Agent
+11. Check Apache
+12. Check generated HTML
+13. Open localhost
+```
+
+**One-line purpose of the whole practical:**
+**Puppet + Hiera + Facter + ERB automatically deploy an Apache-based dynamic Employee Portal.**
+======================================|
+http://localhost/employee_portal/     | 
+======================================|
