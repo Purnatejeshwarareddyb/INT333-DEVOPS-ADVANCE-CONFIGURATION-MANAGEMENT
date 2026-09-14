@@ -1,0 +1,181 @@
+WRITE A puppet manifest to demonstrate resource management and notifications. 1)Create a directory and configuration file using puppet.
+ 2)use a notify resource to display a message where the configuration is applied.
+ 3)Establish an appropriate relationship between resources. Modify the configuration and demonstrate puppets idempotent behaviour.
+ 4)execute and verify the manifest using puppet apply.
+
+vboxuser@puppetmaster:/$ ^C
+vboxuser@puppetmaster:/$ cd ~
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/practical4.pp
+[sudo: authenticate] Password:           
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/practical4.pp
+file { '/etc/puppet/practical4':
+  ensure => directory,
+}
+
+file { '/etc/puppet/practical4/config':
+  ensure  => directory,
+  require => File['/etc/puppet/practical4'],
+}
+
+file { '/etc/puppet/practical4/config/app.conf':
+  ensure  => file,
+  content => "Application=HostelFix\nEnvironment=Production\nStatus=Active\n",
+  require => File['/etc/puppet/practical4/config'],
+}
+
+notify { 'configuration_applied':
+  message => 'Puppet configuration has been successfully applied.',
+  require => File['/etc/puppet/practical4/config/app.conf'],
+}
+vboxuser@puppetmaster:~$ sudo puppet parser validate /etc/puppet/practical4.pp
+vboxuser@puppetmaster:~$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.06 seconds
+Notice: /Stage[main]/Main/File[/etc/puppet/practical4]/ensure: created
+Notice: /Stage[main]/Main/File[/etc/puppet/practical4/config]/ensure: created
+Notice: /Stage[main]/Main/File[/etc/puppet/practical4/config/app.conf]/ensure: defined content as '{sha256}07bc338c46b9ad4893262e6850d333cbb01ff9ad6bb7b4ab9f80da544885db26'
+Notice: Puppet configuration has been successfully applied.
+Notice: /Stage[main]/Main/Notify[configuration_applied]/message: defined 'message' as 'Puppet configuration has been successfully applied.'
+Notice: Applied catalog in 0.07 seconds
+vboxuser@puppetmaster:~$ sudo ls -l /etc/puppet/practical4
+total 4
+drwxr-xr-x 2 root root 4096 Sep 14 11:09 config
+vboxuser@puppetmaster:~$ sudo ls -l /etc/puppet/practical4/config
+total 4
+-rw-r--r-- 1 root root 59 Sep 14 11:09 app.conf
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/practical4/config/app.conf
+Application=HostelFix
+Environment=Production
+Status=Active
+vboxuser@puppetmaster:~$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.05 seconds
+Notice: Puppet configuration has been successfully applied.
+Notice: /Stage[main]/Main/Notify[configuration_applied]/message: defined 'message' as 'Puppet configuration has been successfully applied.'
+Notice: Applied catalog in 0.04 seconds
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/practical4.pp
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/practical4.pp
+file { '/etc/puppet/practical4':
+  ensure => directory,
+}
+
+file { '/etc/puppet/practical4/config':
+  ensure  => directory,
+  require => File['/etc/puppet/practical4'],
+}
+
+file { '/etc/puppet/practical4/config/app.conf':
+  ensure  => file,
+  content => "Application=HostelFix\nEnvironment=Production\nStatus=Maintenance\n",
+  require => File['/etc/puppet/practical4/config'],
+}
+
+notify { 'configuration_applied':
+  message => 'Puppet configuration has been successfully applied.',
+  require => File['/etc/puppet/practical4/config/app.conf'],
+}
+vboxuser@puppetmaster:~$ 
+
+vboxuser@puppetmaster:~$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.05 seconds
+Notice: /Stage[main]/Main/File[/etc/puppet/practical4/config/app.conf]/content: content changed '{sha256}07bc338c46b9ad4893262e6850d333cbb01ff9ad6bb7b4ab9f80da544885db26' to '{sha256}2d9ce94826f221a2d867f52ece66c60272fe77fd3b8404af8e3a9ab5166caff5'
+Notice: Puppet configuration has been successfully applied.
+Notice: /Stage[main]/Main/Notify[configuration_applied]/message: defined 'message' as 'Puppet configuration has been successfully applied.'
+Notice: Applied catalog in 0.07 seconds
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/practical4/config/app.conf
+Application=HostelFix
+Environment=Production
+Status=Maintenance
+vboxuser@puppetmaster:~$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.02 seconds
+Notice: Puppet configuration has been successfully applied.
+Notice: /Stage[main]/Main/Notify[configuration_applied]/message: defined 'message' as 'Puppet configuration has been successfully applied.'
+Notice: Applied catalog in 0.07 seconds
+vboxuser@puppetmaster:~$ 
+
+======================= active to maintainance ===============================================
+
+
+
+
+file{'/home/Main/myapp':
+ensure=>directory,
+}
+
+file{'/home/Man/Myapp/config.txt':
+ensure => file,
+content => "Port=8080\n",
+require => File['/home/Man/myapp'],
+}
+
+notify{'Done':
+message => 'Configuration applid successfully.',
+require => File['home/Man/myapp/config.txt'],ss
+}
+
+-===========================using above given mam code mwthod  -=================================================================
+
+
+vboxuser@puppetmaster:/$ 
+vboxuser@puppetmaster:/$ 
+vboxuser@puppetmaster:/$ 
+vboxuser@puppetmaster:/$ sudo nano /etc/puppet/practical4.pp
+vboxuser@puppetmaster:/$ sudo cat /etc/puppet/practical4.pp
+file { '/home/vboxuser/myapp':
+  ensure => directory,
+}
+
+file { '/home/vboxuser/myapp/config.txt':
+  ensure  => file,
+  content => "Port=8080\n",
+  require => File['/home/vboxuser/myapp'],
+}
+
+notify { 'Done':
+  message => 'Configuration applied successfully.',
+  require => File['/home/vboxuser/myapp/config.txt'],
+}
+vboxuser@puppetmaster:/$ sudo puppet parser validate /etc/puppet/practical4.pp
+vboxuser@puppetmaster:/$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.05 seconds
+Notice: /Stage[main]/Main/File[/home/vboxuser/myapp]/ensure: created
+Notice: /Stage[main]/Main/File[/home/vboxuser/myapp/config.txt]/ensure: defined content as '{sha256}abaf51fd04ee9f34260fe600fba1f1e449a3a527b7b6039475b8528c1aeb9e2d'
+Notice: Configuration applied successfully.
+Notice: /Stage[main]/Main/Notify[Done]/message: defined 'message' as 'Configuration applied successfully.'
+Notice: Applied catalog in 0.10 seconds
+vboxuser@puppetmaster:/$ cat /home/vboxuser/myapp/config.txt
+Port=8080
+vboxuser@puppetmaster:/$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.29 seconds
+Notice: Configuration applied successfully.
+Notice: /Stage[main]/Main/Notify[Done]/message: defined 'message' as 'Configuration applied successfully.'
+Notice: Applied catalog in 0.06 seconds
+vboxuser@puppetmaster:/$ sudo nano /etc/puppet/practical4.pp
+vboxuser@puppetmaster:/$ sudo cat /etc/puppet/practical4.pp
+file { '/home/vboxuser/myapp':
+  ensure => directory,
+}
+
+file { '/home/vboxuser/myapp/config.txt':
+  ensure  => file,
+  content => "Port=9090\n",
+  require => File['/home/vboxuser/myapp'],
+}
+
+notify { 'Done':
+  message => 'Configuration applied successfully.',
+  require => File['/home/vboxuser/myapp/config.txt'],
+}
+vboxuser@puppetmaster:/$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.05 seconds
+Notice: /Stage[main]/Main/File[/home/vboxuser/myapp/config.txt]/content: content changed '{sha256}abaf51fd04ee9f34260fe600fba1f1e449a3a527b7b6039475b8528c1aeb9e2d' to '{sha256}e93e608f8728e844e984a150bcf5da88d4713004b8df987be317ff7565000f0e'
+Notice: Configuration applied successfully.
+Notice: /Stage[main]/Main/Notify[Done]/message: defined 'message' as 'Configuration applied successfully.'
+Notice: Applied catalog in 0.11 seconds
+vboxuser@puppetmaster:/$ cat /home/vboxuser/myapp/config.txt
+Port=9090
+vboxuser@puppetmaster:/$ sudo puppet apply /etc/puppet/practical4.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.14 seconds
+Notice: Configuration applied successfully.
+Notice: /Stage[main]/Main/Notify[Done]/message: defined 'message' as 'Configuration applied successfully.'
+Notice: Applied catalog in 0.04 seconds
+vboxuser@puppetmaster:/$ 
+
