@@ -1,0 +1,321 @@
+NAGIOS CORE INSTALLATION AND CONFIGURATION
+=============================================
+
+Environment:
+- Windows laptop = Host machine
+- VirtualBox = Virtual machine software
+- Ubuntu VM hostname = puppetmaster
+- Ubuntu VM IP = 192.168.56.101
+- Nagios Core version = 4.5.9
+
+1. UPDATE UBUNTU
+----------------
+sudo apt update
+
+2. INSTALL APACHE, PHP AND BASIC PACKAGES
+------------------------------------------
+sudo apt install -y apache2 php libapache2-mod-php build-essential unzip wget openssl
+
+3. DOWNLOAD NAGIOS CORE
+-----------------------
+cd ~
+wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.5.9.tar.gz
+
+ls -lh nagios-4.5.9.tar.gz
+
+4. EXTRACT NAGIOS
+-----------------
+tar -xzf nagios-4.5.9.tar.gz
+cd nagios-4.5.9
+ls
+
+5. INSTALL NAGIOS BUILD DEPENDENCIES
+------------------------------------
+sudo apt install -y autoconf gcc libc6 make wget unzip apache2 php libapache2-mod-php libgd-dev libssl-dev
+
+6. CONFIGURE NAGIOS
+-------------------
+./configure --with-httpd-conf=/etc/apache2/sites-enabled
+
+7. COMPILE NAGIOS
+-----------------
+make all
+
+8. CREATE NAGIOS USER AND GROUP
+-------------------------------
+sudo make install-groups-users
+
+sudo usermod -aG nagios www-data
+
+9. INSTALL NAGIOS
+-----------------
+sudo make install
+
+10. INSTALL NAGIOS SERVICE
+--------------------------
+sudo make install-daemoninit
+
+11. INSTALL COMMAND MODE
+------------------------
+sudo make install-commandmode
+
+12. INSTALL SAMPLE CONFIGURATION
+--------------------------------
+sudo make install-config
+
+13. INSTALL APACHE WEB CONFIGURATION
+------------------------------------
+sudo make install-webconf
+
+14. ENABLE APACHE CGI
+---------------------
+sudo a2enmod cgi
+
+15. RESTART APACHE
+------------------
+sudo systemctl restart apache2
+
+16. CREATE NAGIOS WEB LOGIN
+---------------------------
+sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+
+Enter and confirm the password when prompted.
+
+17. VALIDATE NAGIOS CONFIGURATION
+---------------------------------
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Expected result:
+Total Warnings: 0
+Total Errors: 0
+Things look okay - No serious problems were detected
+
+18. START NAGIOS
+----------------
+sudo systemctl start nagios
+
+19. CHECK NAGIOS SERVICE
+-----------------------
+sudo systemctl status nagios --no-pager
+
+Expected:
+Active: active (running)
+
+20. INSTALL NAGIOS MONITORING PLUGINS
+-------------------------------------
+sudo apt install -y monitoring-plugins
+
+21. CHECK INSTALLED PLUGINS
+---------------------------
+ls /usr/lib/nagios/plugins/
+
+Important plugins include:
+check_ping
+check_http
+check_disk
+check_load
+check_procs
+check_users
+
+22. CONFIGURE NAGIOS PLUGIN PATH
+--------------------------------
+sudo grep 'USER1' /usr/local/nagios/etc/resource.cfg
+
+The default plugin path was changed to the Ubuntu package plugin directory.
+
+sudo sed -i 's|^\$USER1\$=.*|\$USER1$=/usr/lib/nagios/plugins|' /usr/local/nagios/etc/resource.cfg
+
+Verify:
+sudo grep 'USER1' /usr/local/nagios/etc/resource.cfg
+
+Expected:
+$USER1$=/usr/lib/nagios/plugins
+
+23. VALIDATE CONFIGURATION AGAIN
+--------------------------------
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Expected:
+Total Warnings: 0
+Total Errors: 0
+
+24. RESTART NAGIOS
+------------------
+sudo systemctl restart nagios
+
+25. CHECK APACHE
+---------------
+sudo systemctl status apache2 --no-pager
+
+Expected:
+Active: active (running)
+
+26. FIND UBUNTU VM IP
+---------------------
+hostname -I
+
+The Host-Only IP used for Windows access:
+192.168.56.101
+
+27. OPEN NAGIOS FROM WINDOWS
+----------------------------
+Open a browser on Windows and visit:
+
+http://192.168.56.101/nagios/
+
+Login:
+Username: nagiosadmin
+Password: The password created using htpasswd
+
+28. VERIFY NAGIOS DASHBOARD
+---------------------------
+Dashboard showed:
+Daemon Running
+
+29. VERIFY HOST MONITORING
+--------------------------
+Go to:
+Current Status -> Hosts
+
+localhost was:
+UP (GREEN)
+
+30. VERIFY SERVICES
+-------------------
+Go to:
+Current Status -> Services
+
+Initially the following services were green:
+- Current Load
+- Current Users
+- HTTP
+- PING
+- Root Partition
+- Total Processes
+
+SSH was initially red because the SSH server was not installed.
+
+31. INSTALL SSH SERVER
+----------------------
+sudo apt install -y openssh-server
+
+sudo systemctl enable --now ssh
+
+sudo systemctl status ssh --no-pager
+
+Expected:
+Active: active (running)
+
+32. VERIFY SSH PORT
+-------------------
+sudo ss -lntp | grep ':22'
+
+Expected:
+0.0.0.0:22
+[::]:22
+
+33. TEST SSH CONNECTION
+-----------------------
+nc -zv 127.0.0.1 22
+
+Expected:
+Connection to 127.0.0.1 22 port [tcp/ssh] succeeded!
+
+34. TEST NAGIOS SSH PLUGIN
+--------------------------
+sudo -u nagios /usr/lib/nagios/plugins/check_ssh -H 127.0.0.1
+
+Expected:
+SSH OK - OpenSSH_10.2p1 (protocol 2.0)
+
+After refreshing the Nagios dashboard, SSH became:
+GREEN / OK
+
+35. CHECK SWAP
+--------------
+free -h
+
+Initially:
+Swap: 0B 0B 0B
+
+Nagios Swap Usage was therefore red.
+
+36. CREATE 2 GB SWAP
+--------------------
+sudo fallocate -l 2G /swapfile
+
+sudo chmod 600 /swapfile
+
+sudo mkswap /swapfile
+
+sudo swapon /swapfile
+
+37. VERIFY SWAP
+---------------
+free -h
+
+Expected:
+Swap: 2.0Gi  0B  2.0Gi
+
+38. MAKE SWAP PERMANENT
+-----------------------
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+39. VERIFY FSTAB
+----------------
+grep '/swapfile' /etc/fstab
+
+Expected:
+/swapfile none swap sw 0 0
+
+40. FINAL NAGIOS VERIFICATION
+-----------------------------
+Refresh:
+Current Status -> Services
+
+Final status:
+- Current Load = GREEN / OK
+- Current Users = GREEN / OK
+- HTTP = GREEN / OK
+- PING = GREEN / OK
+- Root Partition = GREEN / OK
+- Total Processes = GREEN / OK
+- SSH = GREEN / OK
+- Swap Usage = GREEN / OK
+
+FINAL RESULT
+============
+Nagios Core installation and basic Ubuntu server monitoring were completed successfully.
+
+Architecture:
+Windows Laptop
+    |
+    v
+VirtualBox
+    |
+    v
+Ubuntu VM (192.168.56.101)
+    |
+    +-- Apache Web Server
+    |
+    +-- Nagios Core 4.5.9
+    |
+    +-- Nagios Monitoring Plugins
+    |
+    +-- SSH Server
+    |
+    +-- 2 GB Swap
+    |
+    v
+Nagios Web Dashboard
+
+Final verification:
+- Nagios daemon running
+- localhost UP
+- All default monitored services GREEN / OK
+- Dashboard accessible from Windows browser
+
+Useful screenshots for practical record:
+1. Nagios Dashboard showing Daemon Running
+2. Current Status -> Hosts showing localhost UP
+3. Current Status -> Services showing all services GREEN / OK
