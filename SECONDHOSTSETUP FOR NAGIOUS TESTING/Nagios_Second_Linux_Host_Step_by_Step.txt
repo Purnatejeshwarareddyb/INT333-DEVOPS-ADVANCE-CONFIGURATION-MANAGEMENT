@@ -1,0 +1,325 @@
+NAGIOS CORE – CONFIGURE A SECOND LINUX HOST Complete Step-by-Step
+Practical Guide
+
+PURPOSE This guide demonstrates how to configure and monitor a second
+Linux host in Nagios Core.
+
+IMPORTANT LAB NOTE In a real company, server2 would be a separate Linux
+server with its own IP address.
+
+If only one Linux VM is available for the lab, the Nagios configuration
+can be demonstrated by using the existing VM’s reachable IP as the
+server2 address. This demonstrates the configuration workflow, but it is
+NOT a separate physical or virtual server.
+
+Example used in this lab: Nagios server / existing Ubuntu VM IP =
+192.168.56.101 server2 demonstration IP = 192.168.56.101
+
+Faculty example: server2 address = 192.168.1.20
+
+Do not blindly use 192.168.1.20. Use an IP that is actually reachable in
+your lab.
+
+1.  CHECK THE NAGIOS SERVER IP
+
+Run:
+
+hostname -I
+
+Example:
+
+192.168.56.101
+
+For a real second Linux machine, run hostname -I on that machine and use
+its IP in server2.cfg.
+
+2.  CREATE server2.cfg
+
+Run:
+
+sudo nano /usr/local/nagios/etc/objects/server2.cfg
+
+Add:
+
+define host { use linux-server host_name server2 alias Second Linux
+Server address 192.168.56.101 max_check_attempts 5 check_period 24x7
+notification_interval 30 notification_period 24x7 }
+
+define service { use generic-service host_name server2
+service_description PING check_command check_ping!100.0,20%!500.0,60% }
+
+Replace 192.168.56.101 with the actual second host IP when using a real
+second machine.
+
+Save with: Ctrl + O Enter
+
+Exit with: Ctrl + X
+
+3.  ADD server2.cfg TO nagios.cfg
+
+Run:
+
+sudo nano /usr/local/nagios/etc/nagios.cfg
+
+Add:
+
+cfg_file=/usr/local/nagios/etc/objects/server2.cfg
+
+Save with Ctrl + O, Enter. Exit with Ctrl + X.
+
+4.  CHECK THAT server2.cfg IS INCLUDED
+
+Run:
+
+grep “server2.cfg” /usr/local/nagios/etc/nagios.cfg
+
+Expected:
+
+cfg_file=/usr/local/nagios/etc/objects/server2.cfg
+
+5.  TEST NETWORK CONNECTIVITY
+
+Run:
+
+ping -c 4 192.168.56.101
+
+For a real second Linux host, replace the IP with the second host’s IP.
+
+Expected:
+
+4 packets transmitted, 4 received, 0% packet loss
+
+If you get 100% packet loss or Destination Host Unreachable, fix the
+network/IP configuration before continuing.
+
+6.  TEST THE NAGIOS PING PLUGIN
+
+Check the installed plugin:
+
+ls /usr/lib/nagios/plugins/check_ping
+
+Run:
+
+sudo -u nagios /usr/lib/nagios/plugins/check_ping -H 192.168.56.101 -w
+100.0,20% -c 500.0,60%
+
+Expected:
+
+PING OK - Packet loss = 0%, RTA = …
+
+IMPORTANT: Do not type “…” as the warning/critical values. The plugin
+requires actual values.
+
+The faculty example may use: /usr/local/nagios/libexec/check_ping
+
+In this lab, the plugins are installed under: /usr/lib/nagios/plugins/
+
+The actual plugin path is configured through the USER1 macro.
+
+7.  CHECK THE check_ping COMMAND DEFINITION
+
+Run:
+
+sudo grep -A5 -B2 “command_name.*check_ping”
+/usr/local/nagios/etc/objects/commands.cfg
+
+Expected:
+
+define command {
+
+    command_name    check_ping
+    command_line    $USER1$/check_ping -H $HOSTADDRESS$ -w $ARG1$ -c $ARG2$ -p 5
+
+}
+
+8.  CHECK THE USER1 PLUGIN PATH
+
+Run:
+
+sudo grep ‘USER1’ /usr/local/nagios/etc/resource.cfg
+
+Expected:
+
+USER1=/usr/lib/nagios/plugins
+
+9.  VALIDATE THE COMPLETE NAGIOS CONFIGURATION
+
+Run:
+
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Successful validation should end with:
+
+Total Warnings: 0 Total Errors: 0
+
+Things look okay - No serious problems were detected during the
+pre-flight check
+
+Do not restart Nagios if there are configuration errors. Fix them first.
+
+10. RESTART NAGIOS
+
+Run:
+
+sudo systemctl restart nagios
+
+Then:
+
+sudo systemctl status nagios –no-pager
+
+Expected:
+
+Active: active (running)
+
+11. OPEN THE NAGIOS WEB INTERFACE
+
+From the Windows host computer, open:
+
+http://192.168.56.101/nagios/
+
+Replace the IP if your Nagios server has a different IP.
+
+Log in with the Nagios web account, for example:
+
+Username: nagiosadmin
+
+12. CHECK THE HOST STATUS
+
+In Nagios:
+
+Current Status -> Hosts
+
+Expected:
+
+localhost UP server2 UP
+
+For a real second server, server2 will be UP only when the second
+machine is reachable.
+
+13. CHECK THE PING SERVICE
+
+In Nagios:
+
+Current Status -> Services
+
+Find:
+
+server2 PING
+
+Expected:
+
+Status: OK
+
+Example:
+
+PING OK - Packet loss = 0%, RTA = 0.06 ms
+
+14. IF server2 SHOWS PENDING
+
+Wait for the scheduled check and refresh the Nagios page.
+
+You can also open:
+
+Current Status -> Services -> server2 -> PING
+
+Use the option to re-schedule the next check if available.
+
+Then refresh.
+
+15. IF server2 SHOWS CRITICAL
+
+First test:
+
+ping -c 4 SERVER2_IP
+
+Then:
+
+sudo -u nagios /usr/lib/nagios/plugins/check_ping -H SERVER2_IP -w
+100.0,20% -c 500.0,60%
+
+If the manual test says PING OK but the dashboard still shows an old
+CRITICAL result, wait for or re-schedule a fresh Nagios check.
+
+If the manual test fails, check: - Correct IP address - Network
+connection - VirtualBox network mode, if using VMs - Firewall/ICMP
+rules - Whether the second Linux host is powered on
+
+16. IF CONFIGURATION VALIDATION FAILS
+
+Run:
+
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Common problems: - Typo in server2.cfg - Wrong file path in nagios.cfg -
+Missing closing brace } - Wrong host_name - Wrong command name - Invalid
+IP address
+
+Fix the problem and validate again.
+
+Continue only when:
+
+Total Warnings: 0 Total Errors: 0
+
+17. FINAL VERIFICATION CHECKLIST
+
+[ ] server2.cfg created [ ] Host definition added [ ] PING service added
+[ ] server2.cfg included in nagios.cfg [ ] Server2 IP is correct [ ]
+ping test successful [ ] check_ping plugin test successful [ ] Nagios
+configuration validation successful [ ] 0 warnings [ ] 0 errors [ ]
+Nagios service active/running [ ] Nagios Web Interface accessible [ ]
+server2 shows UP [ ] server2 PING shows OK
+
+18. COMMAND SUMMARY
+
+hostname -I
+
+sudo nano /usr/local/nagios/etc/objects/server2.cfg
+
+sudo nano /usr/local/nagios/etc/nagios.cfg
+
+grep “server2.cfg” /usr/local/nagios/etc/nagios.cfg
+
+ping -c 4 192.168.56.101
+
+sudo -u nagios /usr/lib/nagios/plugins/check_ping -H 192.168.56.101 -w
+100.0,20% -c 500.0,60%
+
+sudo grep -A5 -B2 “command_name.*check_ping”
+/usr/local/nagios/etc/objects/commands.cfg
+
+sudo grep ‘USER1’ /usr/local/nagios/etc/resource.cfg
+
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+sudo systemctl restart nagios
+
+sudo systemctl status nagios –no-pager
+
+19. WHAT TO EXPLAIN TO FACULTY
+
+“I created a separate server2.cfg file for the second Linux host,
+defined the host and PING service, included the file in nagios.cfg,
+tested connectivity, tested the Nagios check_ping plugin, validated the
+complete configuration with zero warnings and errors, restarted Nagios,
+and verified the host and PING service through the Nagios web
+interface.”
+
+For a single-VM lab:
+
+“In this lab, server2 is demonstrated using the existing reachable Linux
+IP because a separate second Linux machine is not available. In a
+company environment, server2 would have its own server IP address.”
+
+20. EXPECTED FINAL RESULT
+
+Nagios Web Interface should show:
+
+Host Status: UP 2 DOWN 0 Unreachable 0 Pending 0
+
+Service Status: OK 9 Warning 0 Unknown 0 Critical 0 Pending 0
+
+And:
+
+server2 -> PING -> OK
+
+This completes the configuration demonstration for the practical.
