@@ -1,0 +1,251 @@
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/code/environments/production/manifests/site.pp
+node 'YOUR-WINDOWS-NODE-NAME' {
+
+  package { 'nginx':
+    ensure => installed,
+  }
+
+  service { 'nginx':
+    ensure => running,
+    enable => true,
+    require => Package['nginx'],
+  }
+
+  file { 'C:/site_711':
+    ensure => directory,
+  }
+
+  file { 'C:/site_711/index.html':
+    ensure  => file,
+    content => "FACULTY PREDEFINED CONTENT\n",
+    require => File['C:/site_711'],
+  }
+}
+vboxuser@puppetmaster:~$ sudo puppetserver ca list
+Requested Certificates:
+    desktop-7mq1kll       (SHA256)  0D:74:9E:48:E3:4A:D7:C5:BC:E0:15:2B:4E:21:76:84:CD:E2:72:52:DC:CE:56:0B:74:74:37:E3:D6:F8:14:5E
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/code/environments/production/manifests/site.pp
+node 'desktop-7mq1kll.lpu.com' {
+
+  file { 'C:/puppet_ca_711.txt':
+    ensure  => file,
+    content => "Puppet CA Web Server Task - Registration: 711\n",
+  }
+
+}
+vboxuser@puppetmaster:~$ sudo puppet parser validate /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:~$ sudo nano /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:~$ sudo cat /etc/puppet/code/environments/production/manifests/site.pp
+node 'puppetmaster' {
+
+  package { 'nginx':
+    ensure => installed,
+  }
+
+  file { '/var/www/site_711':
+    ensure  => directory,
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0755',
+    require => Package['nginx'],
+  }
+
+  file { '/var/www/site_711/index.html':
+    ensure  => file,
+    owner   => 'www-data',
+    group   => 'www-data',
+    mode    => '0644',
+    content => "Puppet Web Server - Registration Number 711\n",
+    require => File['/var/www/site_711'],
+  }
+
+  file { '/etc/nginx/sites-available/site_711':
+    ensure  => file,
+    content => "server {
+    listen 80 default_server;
+    server_name _;
+    root /var/www/site_711;
+    index index.html;
+}
+",
+    require => Package['nginx'],
+    notify  => Service['nginx'],
+  }
+
+  file { '/etc/nginx/sites-enabled/default':
+    ensure => absent,
+    require => Package['nginx'],
+    notify => Service['nginx'],
+  }
+
+  file { '/etc/nginx/sites-enabled/site_711':
+    ensure => link,
+    target  => '/etc/nginx/sites-available/site_711',
+    require => File['/etc/nginx/sites-available/site_711'],
+    notify => Service['nginx'],
+  }
+
+  service { 'nginx':
+    ensure => running,
+    enable => true,
+    require => [
+      Package['nginx'],
+      File['/var/www/site_711/index.html'],
+      File['/etc/nginx/sites-enabled/site_711'],
+    ],
+  }
+}
+vboxuser@puppetmaster:~$ sudo puppet parser validate /etc/puppet/code/environments/production/manifests/site.pp
+vboxuser@puppetmaster:~$ sudo puppet apply /etc/puppet/code/environments/production/manifests/site.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.83 seconds
+Notice: /Stage[main]/Main/Node[puppetmaster]/Package[nginx]/ensure: created
+Notice: /Stage[main]/Main/Node[puppetmaster]/File[/var/www/site_711]/ensure: created
+Notice: /Stage[main]/Main/Node[puppetmaster]/File[/var/www/site_711/index.html]/ensure: defined content as '{sha256}965964109a0b95f708e6880b8fbec5104b998170873807d51b36d9a45b9c9efb'
+Notice: /Stage[main]/Main/Node[puppetmaster]/File[/etc/nginx/sites-available/site_711]/ensure: defined content as '{sha256}815f6195e54728bc2ce956a5681d6a6ec4f8eff35ec2652558b856816a06b9fe'
+Notice: /Stage[main]/Main/Node[puppetmaster]/File[/etc/nginx/sites-enabled/default]/ensure: removed
+Notice: /Stage[main]/Main/Node[puppetmaster]/File[/etc/nginx/sites-enabled/site_711]/ensure: created
+Error: Systemd start for nginx failed!
+journalctl log for nginx:
+Sep 22 11:23:49 puppetmaster systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 22 11:23:49 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:49 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:52 puppetmaster nginx[8645]: nginx: [emerg] still could not bind()
+Sep 22 11:23:52 puppetmaster systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Sep 22 11:23:52 puppetmaster systemd[1]: nginx.service: Failed with result 'exit-code'.
+Sep 22 11:23:52 puppetmaster systemd[1]: Failed to start nginx.service - A high performance web server and a reverse proxy server.
+Sep 22 11:24:09 puppetmaster systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:13 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:13 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:13 puppetmaster nginx[8718]: nginx: [emerg] still could not bind()
+Sep 22 11:24:13 puppetmaster systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Sep 22 11:24:13 puppetmaster systemd[1]: nginx.service: Failed with result 'exit-code'.
+Sep 22 11:24:13 puppetmaster systemd[1]: Failed to start nginx.service - A high performance web server and a reverse proxy server.
+Sep 22 11:24:33 puppetmaster systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 22 11:24:33 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:34 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:34 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:35 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:35 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:36 puppetmaster nginx[8968]: nginx: [emerg] still could not bind()
+Sep 22 11:24:36 puppetmaster systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Sep 22 11:24:36 puppetmaster systemd[1]: nginx.service: Failed with result 'exit-code'.
+Sep 22 11:24:36 puppetmaster systemd[1]: Failed to start nginx.service - A high performance web server and a reverse proxy server.
+
+Error: /Stage[main]/Main/Node[puppetmaster]/Service[nginx]/ensure: change from 'stopped' to 'running' failed: Systemd start for nginx failed!
+journalctl log for nginx:
+Sep 22 11:23:49 puppetmaster systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 22 11:23:49 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:49 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:50 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:23:51 puppetmaster nginx[8645]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:23:52 puppetmaster nginx[8645]: nginx: [emerg] still could not bind()
+Sep 22 11:23:52 puppetmaster systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Sep 22 11:23:52 puppetmaster systemd[1]: nginx.service: Failed with result 'exit-code'.
+Sep 22 11:23:52 puppetmaster systemd[1]: Failed to start nginx.service - A high performance web server and a reverse proxy server.
+Sep 22 11:24:09 puppetmaster systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:11 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:12 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:13 puppetmaster nginx[8718]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:13 puppetmaster nginx[8718]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Sep 22 11:24:13 puppetmaster nginx[8718]: nginx: [emerg] still could not bind()
+Sep 22 11:24:13 puppetmaster systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Sep 22 11:24:13 puppetmaster systemd[1]: nginx.service: Failed with result 'exit-code'.
+Sep 22 11:24:13 puppetmaster systemd[1]: Failed to start nginx.service - A high performance web server and a reverse proxy server.
+Sep 22 11:24:33 puppetmaster systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 22 11:24:33 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:34 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:34 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:35 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:35 puppetmaster nginx[8968]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Sep 22 11:24:36 puppetmaster nginx[8968]: nginx: [emerg] still could not bind()
+Sep 22 11:24:36 puppetmaster systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+Sep 22 11:24:36 puppetmaster systemd[1]: nginx.service: Failed with result 'exit-code'.
+Sep 22 11:24:36 puppetmaster systemd[1]: Failed to start nginx.service - A high performance web server and a reverse proxy server.
+
+Notice: /Stage[main]/Main/Node[puppetmaster]/Service[nginx]: Triggered 'refresh' from 3 events
+Notice: Applied catalog in 62.06 seconds
+vboxuser@puppetmaster:~$ sudo ss -ltnp | grep ':80'
+LISTEN 0      511                *:80              *:*    users:(("apache2",pid=8679,fd=4),("apache2",pid=8678,fd=4),("apache2",pid=8677,fd=4),("apache2",pid=8676,fd=4),("apache2",pid=8675,fd=4),("apache2",pid=1449,fd=4))
+vboxuser@puppetmaster:~$ sudo systemctl stop apache2
+sudo systemctl disable apache2
+Synchronizing state of apache2.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install disable apache2
+Removed '/etc/systemd/system/multi-user.target.wants/apache2.service'.
+vboxuser@puppetmaster:~$ sudo systemctl start nginx
+vboxuser@puppetmaster:~$ sudo systemctl status nginx --no-pager
+● nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-09-22 11:25:22 UTC; 7s ago
+ Invocation: 08ca6f8aa15c408cb49c429efbc63e7e
+       Docs: man:nginx(8)
+    Process: 9497 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+    Process: 9498 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+   Main PID: 9501 (nginx)
+      Tasks: 6 (limit: 2799)
+     Memory: 5.1M (peak: 5.9M)
+        CPU: 77ms
+     CGroup: /system.slice/nginx.service
+             ├─9501 "nginx: master process /usr/sbin/nginx -g daemon on; master_process on;"
+             ├─9502 "nginx: worker process"
+             ├─9503 "nginx: worker process"
+             ├─9504 "nginx: worker process"
+             ├─9506 "nginx: worker process"
+             └─9507 "nginx: worker process"
+
+Sep 22 11:25:22 puppetmaster systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Sep 22 11:25:22 puppetmaster systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+vboxuser@puppetmaster:~$ curl http://localhost
+Puppet Web Server - Registration Number 711
+vboxuser@puppetmaster:~$ ls -l /var/www/site_711/
+total 4
+-rw-r--r-- 1 www-data www-data 44 Sep 22 11:24 index.html
+vboxuser@puppetmaster:~$ cat /var/www/site_711/index.html
+Puppet Web Server - Registration Number 711
+vboxuser@puppetmaster:~$ sudo sh -c 'echo "MANUALLY MODIFIED - CONFIGURATION DRIFT" > /var/www/site_711/index.html'
+vboxuser@puppetmaster:~$ cat /var/www/site_711/index.html
+MANUALLY MODIFIED - CONFIGURATION DRIFT
+vboxuser@puppetmaster:~$ sudo puppet apply /etc/puppet/code/environments/production/manifests/site.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.41 seconds
+Notice: /Stage[main]/Main/Node[puppetmaster]/File[/var/www/site_711/index.html]/content: content changed '{sha256}01d08c1c916197c1bd16f2b55fc29b2dc8715bba53760fca99b2015afa25861c' to '{sha256}965964109a0b95f708e6880b8fbec5104b998170873807d51b36d9a45b9c9efb'
+Notice: Applied catalog in 0.61 seconds
+vboxuser@puppetmaster:~$ cat /var/www/site_711/index.html
+Puppet Web Server - Registration Number 711
+vboxuser@puppetmaster:~$ curl http://localhost
+Puppet Web Server - Registration Number 711
+vboxuser@puppetmaster:~$ sudo puppet apply /etc/puppet/code/environments/production/manifests/site.pp
+Notice: Compiled catalog for puppetmaster in environment production in 0.46 seconds
+Notice: Applied catalog in 0.58 seconds
+vboxuser@puppetmaster:~$ ^C
+vboxuser@puppetmaster:~$ x
+
+
