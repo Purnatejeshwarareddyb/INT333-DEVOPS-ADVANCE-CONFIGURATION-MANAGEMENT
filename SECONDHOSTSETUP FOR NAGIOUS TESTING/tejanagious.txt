@@ -1,0 +1,97 @@
+vboxuser@puppetmaster:~$ sudo nano /usr/local/nagios/etc/objects/teja.cfg
+vboxuser@puppetmaster:~$ sudo cat /usr/local/nagios/etc/objects/teja.cfg
+define host {
+    use                     linux-server
+    host_name               teja
+    alias                   Teja Linux Server
+    address                 192.168.56.101
+    max_check_attempts      5
+    check_period            24x7
+    notification_interval   30
+    notification_period     24x7
+}
+
+define service {
+    use                     generic-service
+    host_name               teja
+    service_description     PING
+    check_command           check_ping!100.0,20%!500.0,60%
+}
+vboxuser@puppetmaster:~$ sudo nano /usr/local/nagios/etc/nagios.cfg
+vboxuser@puppetmaster:~$ grep "teja.cfg" /usr/local/nagios/etc/nagios.cfg
+cfg_file=/usr/local/nagios/etc/objects/teja.cfg
+vboxuser@puppetmaster:~$ sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Nagios Core 4.5.9
+Copyright (c) 2009-present Nagios Core Development Team and Community Contributors
+Copyright (c) 1999-2009 Ethan Galstad
+Last Modified: 2024-12-19
+License: GPL
+
+Website: https://www.nagios.org
+Reading configuration data...
+   Read main config file okay...
+   Read object config files okay...
+
+Running pre-flight check on configuration data...
+
+Checking objects...
+	Checked 10 services.
+	Checked 3 hosts.
+	Checked 1 host groups.
+	Checked 0 service groups.
+	Checked 1 contacts.
+	Checked 1 contact groups.
+	Checked 24 commands.
+	Checked 5 time periods.
+	Checked 0 host escalations.
+	Checked 0 service escalations.
+Checking for circular paths...
+	Checked 3 hosts
+	Checked 0 service dependencies
+	Checked 0 host dependencies
+	Checked 5 timeperiods
+Checking global event handlers...
+Checking obsessive compulsive processor commands...
+Checking misc settings...
+
+Total Warnings: 0
+Total Errors:   0
+
+Things look okay - No serious problems were detected during the pre-flight check
+vboxuser@puppetmaster:~$ sudo systemctl restart nagios
+vboxuser@puppetmaster:~$ sudo systemctl status nagios --no-pager
+● nagios.service - Nagios Core 4.5.9
+     Loaded: loaded (/usr/lib/systemd/system/nagios.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-09-24 11:16:47 UTC; 5s ago
+ Invocation: d76bfeb1eee2490ca3250bfb6a2938d5
+       Docs: https://www.nagios.org/documentation
+    Process: 11830 ExecStartPre=/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg (code=exited, status=0/SUCCESS)
+    Process: 11831 ExecStart=/usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg (code=exited, status=0/SUCCESS)
+   Main PID: 11833 (nagios)
+      Tasks: 9 (limit: 2799)
+     Memory: 8.4M (peak: 9.4M)
+        CPU: 284ms
+     CGroup: /system.slice/nagios.service
+             ├─11833 /usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg
+             ├─11835 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─11836 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─11837 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─11838 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─11839 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─11840 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─11841 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             └─11843 /usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg
+
+Sep 24 11:16:47 puppetmaster nagios[11833]: qh: help for the query handler registered
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Successfully registered manager as @wproc with query handler
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Registry request: name=Core Worker 11837;pid=11837
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Registry request: name=Core Worker 11840;pid=11840
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Registry request: name=Core Worker 11835;pid=11835
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Registry request: name=Core Worker 11838;pid=11838
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Registry request: name=Core Worker 11839;pid=11839
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Registry request: name=Core Worker 11836;pid=11836
+Sep 24 11:16:47 puppetmaster nagios[11833]: wproc: Registry request: name=Core Worker 11841;pid=11841
+Sep 24 11:16:47 puppetmaster nagios[11833]: Successfully launched command file worker with pid 11843
+vboxuser@puppetmaster:~$ 
+
