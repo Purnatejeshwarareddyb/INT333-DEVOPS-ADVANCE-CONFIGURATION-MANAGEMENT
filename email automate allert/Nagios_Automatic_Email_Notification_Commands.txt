@@ -1,0 +1,181 @@
+NAGIOS AUTOMATIC EMAIL NOTIFICATION SETUP
+===========================================
+
+Gmail account used:
+tejab6900@gmail.com
+
+IMPORTANT:
+- The Gmail App Password is NOT written in this file.
+- Replace ACTUAL_APP_PASSWORD below with the App Password when configuring it.
+
+1. INSTALL POSTFIX AND MAIL UTILITIES
+--------------------------------------
+sudo apt install postfix mailutils libsasl2-modules ca-certificates -y
+
+2. CREATE POSTFIX GMAIL PASSWORD FILE
+-------------------------------------
+sudo nano /etc/postfix/sasl_passwd
+
+Add:
+[smtp.gmail.com]:587 tejab6900@gmail.com:ACTUAL_APP_PASSWORD
+
+3. PROTECT THE PASSWORD FILE
+----------------------------
+sudo chmod 600 /etc/postfix/sasl_passwd
+
+4. CREATE POSTFIX PASSWORD DATABASE
+-----------------------------------
+sudo postmap /etc/postfix/sasl_passwd
+
+5. CONFIGURE POSTFIX TO USE GMAIL SMTP
+---------------------------------------
+sudo postconf -e "relayhost = [smtp.gmail.com]:587"
+sudo postconf -e "smtp_sasl_auth_enable = yes"
+sudo postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd"
+sudo postconf -e "smtp_sasl_security_options = noanonymous"
+sudo postconf -e "smtp_use_tls = yes"
+sudo postconf -e "smtp_tls_security_level = encrypt"
+sudo postconf -e "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
+
+6. RESTART POSTFIX
+------------------
+sudo systemctl restart postfix
+
+7. TEST GMAIL EMAIL DELIVERY
+----------------------------
+echo "Nagios email test" | mail -s "Nagios Test Email" tejab6900@gmail.com
+
+Check delivery/log if required:
+sudo tail -n 50 /var/log/mail.log
+
+A successful delivery shows:
+status=sent
+
+8. NAGIOS EMAIL COMMANDS
+------------------------
+File:
+sudo nano /usr/local/nagios/etc/objects/commands.cfg
+
+The standard Nagios email commands used are:
+
+define command {
+    command_name    notify-host-by-email
+    command_line    /usr/bin/printf "%b" "***** Nagios *****\n\nNotification Type: $NOTIFICATIONTYPE$\nHost: $HOSTNAME$\nState: $HOSTSTATE$\nAddress: $HOSTADDRESS$\nInfo: $HOSTOUTPUT$\n\nDate/Time: $LONGDATETIME$\n" | /usr/bin/mail -s "** $NOTIFICATIONTYPE$ Host Alert: $HOSTNAME$ is $HOSTSTATE$ **" $CONTACTEMAIL$
+}
+
+define command {
+    command_name    notify-service-by-email
+    command_line    /usr/bin/printf "%b" "***** Nagios *****\n\nNotification Type: $NOTIFICATIONTYPE$\n\nService: $SERVICEDESC$\nHost: $HOSTALIAS$\nAddress: $HOSTADDRESS$\nState: $SERVICESTATE$\n\nDate/Time: $LONGDATETIME$\n\nAdditional Info:\n\n$SERVICEOUTPUT$\n" | /usr/bin/mail -s "** $NOTIFICATIONTYPE$ Service Alert: $HOSTALIAS$/$SERVICEDESC$ is $SERVICESTATE$ **" $CONTACTEMAIL$
+}
+
+9. CREATE NAGIOS EMAIL CONTACT
+-------------------------------
+File:
+sudo nano /usr/local/nagios/etc/objects/alerts.cfg
+
+Add:
+
+define contact {
+    contact_name                    teja
+    alias                           Teja Email Alert
+    email                           tejab6900@gmail.com
+    host_notification_period        24x7
+    service_notification_period     24x7
+    host_notification_options       d,u,r
+    service_notification_options    w,u,c,r
+    host_notification_commands      notify-host-by-email
+    service_notification_commands   notify-service-by-email
+}
+
+define contactgroup {
+    contactgroup_name               nagios-admins
+    alias                           Nagios Administrators
+    members                          teja
+}
+
+10. INCLUDE THE ALERT CONFIGURATION
+------------------------------------
+Edit:
+sudo nano /usr/local/nagios/etc/nagios.cfg
+
+Add:
+cfg_file=/usr/local/nagios/etc/objects/alerts.cfg
+
+11. ADD EMAIL CONTACT GROUP TO MONITORED HOST/SERVICE
+------------------------------------------------------
+For the monitored host:
+
+contact_groups          nagios-admins
+
+For the monitored service:
+
+contact_groups          nagios-admins
+
+12. VALIDATE NAGIOS CONFIGURATION
+----------------------------------
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Expected:
+Total Warnings: 0
+Total Errors:   0
+
+13. RESTART NAGIOS
+------------------
+sudo systemctl restart nagios
+
+14. VERIFY NAGIOS IS RUNNING
+----------------------------
+sudo systemctl status nagios
+
+15. EMAIL ALERT TEST
+--------------------
+A test service was created using a custom command that intentionally returns failure:
+
+define command {
+    command_name    email-test
+    command_line    /bin/false
+}
+
+Test service:
+
+define service {
+    use                     generic-service
+    host_name               teja
+    service_description     EMAIL-TEST
+    check_command           email-test
+    max_check_attempts      1
+    notification_interval   60
+    notification_period     24x7
+    notification_options    w,u,c,r
+    contact_groups          nagios-admins
+}
+
+After Nagios processed the service failure, Gmail received:
+
+PROBLEM Service Alert: Teja Linux Server/EMAIL-TEST is WARNING
+
+This confirmed:
+Nagios -> mail command -> Postfix -> Gmail
+
+NOTE:
+EMAIL-TEST is only a notification test service. Remove it after testing if it is no longer needed.
+
+16. USEFUL COMMANDS FOR FUTURE CHECKS
+-------------------------------------
+Check Postfix:
+sudo systemctl status postfix
+
+Check Nagios:
+sudo systemctl status nagios
+
+Check recent mail activity:
+sudo tail -n 50 /var/log/mail.log
+
+Check Nagios configuration:
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Restart Postfix:
+sudo systemctl restart postfix
+
+Restart Nagios:
+sudo systemctl restart nagios
