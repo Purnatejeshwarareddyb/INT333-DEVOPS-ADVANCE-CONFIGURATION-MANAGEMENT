@@ -1,0 +1,1349 @@
+============================================================
+COMPLETE NAGIOS CORE PRACTICAL COMMAND SHEET Ubuntu VirtualBox VM Implementation
+============================================================
+Nagios Core 4.5.9
+Hostname: puppetmaster
+IP Address: 192.168.56.101
+# Complete Nagios Practical Command Sheet
+********************************************************************************************
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+********************************************************************************************
+
+
+
+
+## 1. Environment used
+
+| Item          | Your actual setup     |
+| ------------- | --------------------- |
+| OS            | Ubuntu VM             |
+| Hostname      | `puppetmaster`        |
+| Nagios Core   | 4.5.9                 |
+| Nagios IP     | `192.168.56.101`      |
+| Web server    | Nginx                 |
+| HTTP          | Port 80               |
+| HTTPS         | Port 443              |
+| PHP           | PHP 8.5 FPM           |
+| CGI           | fcgiwrap              |
+| Email         | Postfix + Gmail SMTP  |
+| Nagios target | `teja`                |
+| Target IP     | `192.168.56.101`      |
+| Email         | `tejab6900@gmail.com` |
+
+---
+
+# PART 1 — System preparation
+
+### Update Ubuntu
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+### Install required build packages
+
+```bash
+sudo apt install -y autoconf gcc libc6 make wget unzip apache2-utils php libapache2-mod-php libgd-dev libmcrypt-dev libssl-dev bc gawk dc build-essential
+```
+
+---
+
+# PART 2 — Nagios user and groups
+
+```bash
+sudo useradd nagios
+sudo groupadd nagcmd
+sudo usermod -aG nagcmd nagios
+sudo usermod -aG nagcmd www-data
+```
+
+---
+
+# PART 3 — Nagios Core installation
+
+The Nagios Core source installation was done under:
+
+```text
+/usr/local/nagios
+```
+
+After installation, verify:
+
+```bash
+/usr/local/nagios/bin/nagios --version
+```
+
+Expected:
+
+```text
+Nagios Core 4.5.9
+```
+
+Enable and start:
+
+```bash
+sudo systemctl enable nagios
+sudo systemctl start nagios
+```
+
+Check:
+
+```bash
+sudo systemctl status nagios --no-pager
+```
+
+---
+
+# PART 4 — Nagios configuration directories
+
+Main configuration:
+
+```text
+/usr/local/nagios/etc/nagios.cfg
+```
+
+Object configurations:
+
+```text
+/usr/local/nagios/etc/objects/
+```
+
+Important files used:
+
+```text
+nagios.cfg
+cgi.cfg
+commands.cfg
+contacts.cfg
+templates.cfg
+teja.cfg
+alerts.cfg
+```
+
+---
+
+# PART 5 — Add Teja host
+
+File:
+
+```bash
+sudo nano /usr/local/nagios/etc/objects/teja.cfg
+```
+
+Host configuration:
+
+```text
+define host {
+    use                     linux-server
+    host_name               teja
+    alias                   Teja Linux Server
+    address                 192.168.56.101
+    max_check_attempts      5
+    check_period            24x7
+    notification_interval   30
+    notification_period     24x7
+    contact_groups          nagios-admins
+}
+```
+
+---
+
+# PART 6 — PING monitoring
+
+Added to `teja.cfg`:
+
+```text
+define service {
+    use                     generic-service
+    host_name               teja
+    service_description     PING
+    check_command           check_ping!100.0,20%!500.0,60%
+    contact_groups          nagios-admins
+}
+```
+
+---
+
+# PART 7 — Enable Teja configuration
+
+In:
+
+```bash
+sudo nano /usr/local/nagios/etc/nagios.cfg
+```
+
+Added:
+
+```text
+cfg_file=/usr/local/nagios/etc/objects/teja.cfg
+```
+
+---
+
+# PART 8 — Install Nagios plugins
+
+Initially `check_http`, `check_ssh`, and `check_tcp` were missing.
+
+Installed:
+
+```bash
+sudo apt update
+sudo apt install nagios-plugins-contrib nagios-plugins-basic -y
+```
+
+Plugins are located at:
+
+```text
+/usr/lib/nagios/plugins/
+```
+
+Check:
+
+```bash
+ls -l /usr/lib/nagios/plugins/check_*
+```
+
+Important plugins:
+
+```text
+/usr/lib/nagios/plugins/check_http
+/usr/lib/nagios/plugins/check_ssh
+/usr/lib/nagios/plugins/check_tcp
+```
+
+**Important:** Your installation does NOT use:
+
+```text
+/usr/local/nagios/libexec/check_http
+```
+
+It uses:
+
+```text
+/usr/lib/nagios/plugins/check_http
+```
+
+---
+
+# PART 9 — SSH monitoring
+
+Added:
+
+```text
+define service {
+    use                     generic-service
+    host_name               teja
+    service_description     SSH
+    check_command           check_ssh
+    check_interval          5
+    retry_interval           1
+    max_check_attempts      3
+    notification_interval   30
+    notification_period     24x7
+    contact_groups          nagios-admins
+}
+```
+
+Manual/direct test:
+
+```bash
+sudo /usr/lib/nagios/plugins/check_ssh 192.168.56.101
+```
+
+Expected:
+
+```text
+SSH OK
+```
+
+---
+
+# PART 10 — HTTP monitoring
+
+Added:
+
+```text
+define service {
+    use                     generic-service
+    host_name               teja
+    service_description     HTTP
+    check_command           check_http
+    check_interval          5
+    retry_interval          1
+    max_check_attempts      3
+    notification_interval   30
+    notification_period     24x7
+    contact_groups          nagios-admins
+}
+```
+
+Direct test:
+
+```bash
+sudo /usr/lib/nagios/plugins/check_http -H 192.168.56.101
+```
+
+Final result:
+
+```text
+HTTP OK: HTTP/1.1 200 OK
+```
+
+---
+
+# PART 11 — HTTPS monitoring
+
+Added:
+
+```text
+define service {
+    use                     generic-service
+    host_name               teja
+    service_description     HTTPS
+    check_command           check_http!-S
+    check_interval          5
+    retry_interval          1
+    max_check_attempts      3
+    notification_interval   30
+    notification_period     24x7
+    contact_groups          nagios-admins
+}
+```
+
+Direct test:
+
+```bash
+sudo /usr/lib/nagios/plugins/check_http -H 192.168.56.101 -S
+```
+
+Final result:
+
+```text
+HTTP OK: HTTP/1.1 200 OK
+```
+
+---
+
+# PART 12 — SSL Certificate monitoring
+
+Added:
+
+```text
+define service {
+    use                     generic-service
+    host_name               teja
+    service_description     SSL Certificate
+    check_command           check_http!-S!-C 30,14
+    check_interval          60
+    retry_interval          5
+    max_check_attempts      3
+    notification_interval   60
+    notification_period     24x7
+    contact_groups          nagios-admins
+}
+```
+
+This checks the HTTPS certificate validity.
+
+---
+
+# PART 13 — Nginx installation/configuration
+
+Nginx was used instead of Apache because Apache was occupying port 80.
+
+We stopped Apache:
+
+```bash
+sudo systemctl stop apache2
+sudo systemctl disable apache2
+```
+
+Check Nginx:
+
+```bash
+sudo systemctl enable nginx
+sudo systemctl start nginx
+sudo systemctl status nginx --no-pager
+```
+
+---
+
+# PART 14 — Existing Puppet web page
+
+Your original page was:
+
+```text
+/var/www/site_711/index.html
+```
+
+Containing:
+
+```text
+Puppet Web Server - Registration Number 711
+```
+
+Nginx configuration:
+
+```text
+/etc/nginx/sites-available/site_711
+```
+
+Enabled using:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/site_711 /etc/nginx/sites-enabled/site_711
+```
+
+Then:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+---
+
+# PART 15 — Install fcgiwrap
+
+Needed to execute Nagios CGI files.
+
+```bash
+sudo apt install fcgiwrap -y
+```
+
+Enable:
+
+```bash
+sudo systemctl enable --now fcgiwrap.socket
+```
+
+Check:
+
+```bash
+sudo systemctl status fcgiwrap.socket --no-pager
+```
+
+Check socket:
+
+```bash
+ls -l /run/fcgiwrap.socket
+```
+
+---
+
+# PART 16 — Install PHP-FPM
+
+Nagios web interface uses PHP files.
+
+Installed:
+
+```bash
+sudo apt update
+sudo apt install php8.5-fpm -y
+```
+
+Enable:
+
+```bash
+sudo systemctl enable --now php8.5-fpm
+```
+
+Check:
+
+```bash
+sudo systemctl status php8.5-fpm --no-pager
+```
+
+Check socket:
+
+```bash
+ls -l /run/php/
+```
+
+---
+
+# PART 17 — Nagios Nginx web configuration
+
+Nagios was exposed at:
+
+```text
+http://192.168.56.101/nagios/
+```
+
+and HTTPS:
+
+```text
+https://192.168.56.101/nagios/
+```
+
+The Nginx configuration included:
+
+```nginx
+location /nagios/ {
+    alias /usr/local/nagios/share/;
+    index index.php;
+
+    auth_basic "Nagios";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+}
+```
+
+PHP:
+
+```nginx
+location ~ ^/nagios/(.+\.php)$ {
+    alias /usr/local/nagios/share/$1;
+
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /usr/local/nagios/share/$1;
+    fastcgi_param SCRIPT_NAME /nagios/$1;
+
+    fastcgi_pass unix:/run/php/php8.5-fpm.sock;
+}
+```
+
+CGI:
+
+```nginx
+location ~ ^/nagios/cgi-bin/(.+\.cgi)$ {
+    include fastcgi_params;
+
+    fastcgi_param SCRIPT_FILENAME /usr/local/nagios/sbin/$1;
+    fastcgi_param SCRIPT_NAME /nagios/cgi-bin/$1;
+    fastcgi_param DOCUMENT_ROOT /usr/local/nagios/sbin;
+
+    fastcgi_pass unix:/run/fcgiwrap.socket;
+}
+```
+
+Test:
+
+```bash
+sudo nginx -t
+```
+
+Reload:
+
+```bash
+sudo systemctl reload nginx
+```
+
+---
+
+# PART 18 — Nagios web authentication
+
+Installed:
+
+```bash
+sudo apt install apache2-utils -y
+```
+
+Created Nagios web password:
+
+```bash
+sudo htpasswd -c /etc/nginx/.htpasswd nagiosadmin
+```
+
+Then Nginx was reloaded:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+---
+
+# PART 19 — Nagios CGI authentication
+
+File:
+
+```bash
+sudo nano /usr/local/nagios/etc/cgi.cfg
+```
+
+Configured:
+
+```text
+use_authentication=1
+authorized_for_system_information=nagiosadmin
+authorized_for_configuration_information=nagiosadmin
+authorized_for_system_commands=nagiosadmin
+authorized_for_all_services=nagiosadmin
+authorized_for_all_hosts=nagiosadmin
+authorized_for_all_service_commands=nagiosadmin
+authorized_for_all_host_commands=nagiosadmin
+```
+
+---
+
+# PART 20 — Create HTTPS certificate
+
+Created directory:
+
+```bash
+sudo mkdir -p /etc/nginx/ssl
+```
+
+Generated self-signed certificate:
+
+```bash
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+-keyout /etc/nginx/ssl/nagios.key \
+-out /etc/nginx/ssl/nagios.crt \
+-subj "/C=IN/ST=Punjab/L=Ludhiana/O=Nagios/CN=192.168.56.101"
+```
+
+Certificate:
+
+```text
+/etc/nginx/ssl/nagios.crt
+```
+
+Private key:
+
+```text
+/etc/nginx/ssl/nagios.key
+```
+
+Permissions:
+
+```bash
+sudo chmod 600 /etc/nginx/ssl/nagios.key
+sudo chmod 644 /etc/nginx/ssl/nagios.crt
+```
+
+---
+
+# PART 21 — Nginx HTTPS
+
+Added:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name _;
+
+    root /var/www/site_711;
+    index index.html;
+
+    ssl_certificate /etc/nginx/ssl/nagios.crt;
+    ssl_certificate_key /etc/nginx/ssl/nagios.key;
+
+    location /nagios/ {
+        alias /usr/local/nagios/share/;
+        index index.php;
+
+        auth_basic "Nagios";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+    }
+
+    location ~ ^/nagios/(.+\.php)$ {
+        alias /usr/local/nagios/share/$1;
+
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /usr/local/nagios/share/$1;
+        fastcgi_param SCRIPT_NAME /nagios/$1;
+
+        fastcgi_pass unix:/run/php/php8.5-fpm.sock;
+    }
+
+    location ~ ^/nagios/cgi-bin/(.+\.cgi)$ {
+        include fastcgi_params;
+
+        fastcgi_param SCRIPT_FILENAME /usr/local/nagios/sbin/$1;
+        fastcgi_param SCRIPT_NAME /nagios/cgi-bin/$1;
+        fastcgi_param DOCUMENT_ROOT /usr/local/nagios/sbin;
+
+        fastcgi_pass unix:/run/fcgiwrap.socket;
+    }
+}
+```
+
+Test:
+
+```bash
+sudo nginx -t
+```
+
+Reload:
+
+```bash
+sudo systemctl reload nginx
+```
+
+Check port 443:
+
+```bash
+sudo ss -lntp | grep ':443'
+```
+
+Test HTTPS:
+
+```bash
+curl -k -I https://192.168.56.101
+```
+
+---
+
+# PART 22 — Gmail/Postfix notification system
+
+Installed:
+
+```bash
+sudo apt install postfix mailutils libsasl2-modules ca-certificates -y
+```
+
+Gmail App Password was created for:
+
+```text
+tejab6900@gmail.com
+```
+
+Created:
+
+```bash
+sudo nano /etc/postfix/sasl_passwd
+```
+
+Content:
+
+```text
+[smtp.gmail.com]:587 tejab6900@gmail.com:YOUR_GMAIL_APP_PASSWORD
+```
+
+Create database:
+
+```bash
+sudo postmap /etc/postfix/sasl_passwd
+```
+
+Protect password:
+
+```bash
+sudo chmod 600 /etc/postfix/sasl_passwd
+sudo chmod 600 /etc/postfix/sasl_passwd.db
+```
+
+---
+
+# PART 23 — Postfix Gmail configuration
+
+```bash
+sudo postconf -e "relayhost = [smtp.gmail.com]:587"
+```
+
+```bash
+sudo postconf -e "smtp_sasl_auth_enable = yes"
+```
+
+```bash
+sudo postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd"
+```
+
+```bash
+sudo postconf -e "smtp_sasl_security_options = noanonymous"
+```
+
+```bash
+sudo postconf -e "smtp_use_tls = yes"
+```
+
+```bash
+sudo postconf -e "smtp_tls_security_level = encrypt"
+```
+
+```bash
+sudo postconf -e "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
+```
+
+Restart:
+
+```bash
+sudo systemctl restart postfix
+```
+
+Check:
+
+```bash
+sudo systemctl status postfix --no-pager
+```
+
+---
+
+# PART 24 — Test Gmail manually
+
+We tested Postfix using:
+
+```bash
+echo "Nagios Gmail test" | mail -s "Nagios Test" tejab6900@gmail.com
+```
+
+Check mail log:
+
+```bash
+sudo tail -n 50 /var/log/mail.log
+```
+
+Successful result contained:
+
+```text
+status=sent
+```
+
+So:
+
+```text
+Nagios → Postfix → Gmail
+```
+
+was working.
+
+---
+
+# PART 25 — Nagios email contact
+
+Created:
+
+```bash
+sudo nano /usr/local/nagios/etc/objects/alerts.cfg
+```
+
+Configuration:
+
+```text
+define contact {
+    contact_name                    teja
+    alias                           Teja Email Alert
+    email                           tejab6900@gmail.com
+    host_notification_period        24x7
+    service_notification_period     24x7
+    host_notification_options       d,u,r
+    service_notification_options    w,u,c,r
+    host_notification_commands      notify-host-by-email
+    service_notification_commands   notify-service-by-email
+}
+
+define contactgroup {
+    contactgroup_name               nagios-admins
+    alias                           Nagios Administrators
+    members                          teja
+}
+```
+
+Added to `nagios.cfg`:
+
+```text
+cfg_file=/usr/local/nagios/etc/objects/alerts.cfg
+```
+
+---
+
+# PART 26 — Email notification commands
+
+Nagios already had:
+
+```text
+notify-host-by-email
+```
+
+and:
+
+```text
+notify-service-by-email
+```
+
+in:
+
+```text
+/usr/local/nagios/etc/objects/commands.cfg
+```
+
+These call the Nagios notification email scripts.
+
+---
+
+# PART 27 — Add email contact to Teja services
+
+The Teja host/services use:
+
+```text
+contact_groups          nagios-admins
+```
+
+Therefore alerts go to:
+
+```text
+tejab6900@gmail.com
+```
+
+---
+
+# PART 28 — Nagios configuration validation
+
+This was repeatedly used:
+
+```bash
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+```
+
+Final result:
+
+```text
+Total Warnings: 0
+Total Errors:   0
+```
+
+Final configuration contained:
+
+```text
+14 services
+3 hosts
+2 contacts
+2 contact groups
+24 commands
+5 time periods
+```
+
+---
+
+# PART 29 — Restart Nagios
+
+```bash
+sudo systemctl restart nagios
+```
+
+Check:
+
+```bash
+sudo systemctl status nagios --no-pager
+```
+
+Final result:
+
+```text
+Active: active (running)
+```
+
+---
+
+# PART 30 — HTTP failure demonstration
+
+This was an important part of your manual.
+
+We intentionally stopped Nginx:
+
+```bash
+sudo systemctl stop nginx
+```
+
+Direct HTTP test:
+
+```bash
+sudo /usr/lib/nagios/plugins/check_http -H 192.168.56.101
+```
+
+Result:
+
+```text
+Connection refused
+HTTP CRITICAL - Unable to open TCP socket
+```
+
+Then Nagios detected:
+
+```text
+teja;HTTP;CRITICAL;SOFT;1
+teja;HTTP;CRITICAL;SOFT;2
+teja;HTTP;CRITICAL;HARD;3
+```
+
+And most importantly:
+
+```text
+SERVICE NOTIFICATION: teja;teja;HTTP;CRITICAL;notify-service-by-email
+```
+
+Therefore your **real service failure + email notification demonstration was completed**.
+
+---
+
+# PART 31 — HTTP recovery
+
+Started Nginx:
+
+```bash
+sudo systemctl start nginx
+```
+
+Check:
+
+```bash
+sudo systemctl status nginx --no-pager
+```
+
+Direct test:
+
+```bash
+sudo /usr/lib/nagios/plugins/check_http -H 192.168.56.101
+```
+
+Result:
+
+```text
+HTTP OK: HTTP/1.1 200 OK
+```
+
+Nagios then returned the service to OK.
+
+---
+
+# PART 32 — HTTPS failure/recovery demonstration
+
+Because HTTPS depends on Nginx, stopping Nginx also caused:
+
+```text
+teja;HTTPS;CRITICAL
+```
+
+Nagios reached:
+
+```text
+HTTPS;CRITICAL;HARD;3
+```
+
+and sent the notification.
+
+After Nginx was restarted:
+
+```bash
+sudo systemctl start nginx
+```
+
+Direct HTTPS test:
+
+```bash
+sudo /usr/lib/nagios/plugins/check_http -H 192.168.56.101 -S
+```
+
+Result:
+
+```text
+HTTP OK: HTTP/1.1 200 OK
+```
+
+Nagios log showed:
+
+```text
+teja;HTTPS;OK;HARD;1
+```
+
+So the **HTTPS failure/recovery demonstration was also completed**.
+
+---
+
+# PART 33 — Check Nagios logs
+
+Used:
+
+```bash
+sudo grep -E "HTTP|PROBLEM" /usr/local/nagios/var/nagios.log | tail -20
+```
+
+For Teja HTTP:
+
+```bash
+sudo grep "teja;HTTP" /usr/local/nagios/var/nagios.log | tail -10
+```
+
+For Teja HTTPS:
+
+```bash
+sudo grep "teja;HTTPS" /usr/local/nagios/var/nagios.log | tail -5
+```
+
+These were used to prove the CRITICAL → HARD → notification → OK sequence.
+
+---
+
+# PART 34 — Final HTTP test
+
+```bash
+sudo /usr/lib/nagios/plugins/check_http -H 192.168.56.101
+```
+
+Final result:
+
+```text
+HTTP OK: HTTP/1.1 200 OK
+```
+
+---
+
+# PART 35 — Final HTTPS test
+
+```bash
+sudo /usr/lib/nagios/plugins/check_http -H 192.168.56.101 -S
+```
+
+Final result:
+
+```text
+HTTP OK: HTTP/1.1 200 OK
+```
+
+---
+
+# PART 36 — Temporary email test
+
+We originally created this temporary command:
+
+```text
+define command {
+    command_name    email-test
+    command_line    /bin/false
+}
+```
+
+and temporary service:
+
+```text
+EMAIL-TEST
+```
+
+It successfully generated a Gmail warning and proved Nagios email notifications.
+
+**But it was removed before finalization.**
+
+We removed:
+
+```text
+cfg_file=/usr/local/nagios/etc/objects/emailtest.cfg
+```
+
+from `nagios.cfg`.
+
+Then removed the `email-test` command from `commands.cfg`.
+
+Final validation:
+
+```text
+Checked 24 commands.
+Total Warnings: 0
+Total Errors:   0
+```
+
+So the temporary test does **not** remain in your final configuration.
+
+---
+
+# PART 37 — Final Nagios validation
+
+The final command:
+
+```bash
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+```
+
+Final result:
+
+```text
+Checked 14 services.
+Checked 3 hosts.
+Checked 2 contacts.
+Checked 2 contact groups.
+Checked 24 commands.
+
+Total Warnings: 0
+Total Errors:   0
+
+Things look okay - No serious problems were detected
+```
+
+---
+
+# PART 38 — Final Nagios service check
+
+```bash
+sudo systemctl restart nagios
+```
+
+```bash
+sudo systemctl status nagios --no-pager
+```
+
+Final:
+
+```text
+Active: active (running)
+```
+
+---
+
+# PART 39 — Final Nginx check
+
+```bash
+sudo systemctl status nginx --no-pager
+```
+
+Check port 80:
+
+```bash
+sudo ss -lntp | grep ':80'
+```
+
+Check port 443:
+
+```bash
+sudo ss -lntp | grep ':443'
+```
+
+---
+
+# PART 40 — Final web access
+
+HTTP:
+
+```text
+http://192.168.56.101/nagios/
+```
+
+HTTPS:
+
+```text
+https://192.168.56.101/nagios/
+```
+
+The Nagios dashboard was successfully opened with authentication.
+
+---
+
+# What from your faculty manual is actually completed?
+
+## ✅ Completed
+
+| Manual requirement          | Your implementation |
+| --------------------------- | ------------------- |
+| Nagios Core installation    | ✅                   |
+| Nagios configuration        | ✅                   |
+| Host monitoring             | ✅                   |
+| PING                        | ✅                   |
+| SSH agentless monitoring    | ✅                   |
+| HTTP monitoring             | ✅                   |
+| HTTPS monitoring            | ✅                   |
+| SSL certificate check       | ✅                   |
+| Nginx web service           | ✅                   |
+| Nagios web dashboard        | ✅                   |
+| Web authentication          | ✅                   |
+| CGI authentication          | ✅                   |
+| Gmail notification          | ✅                   |
+| Postfix SMTP                | ✅                   |
+| Gmail App Password          | ✅                   |
+| Problem notification        | ✅                   |
+| Recovery notification       | ✅                   |
+| HTTP failure demonstration  | ✅                   |
+| HTTPS failure demonstration | ✅                   |
+| Recovery demonstration      | ✅                   |
+| Nagios logs                 | ✅                   |
+| Configuration validation    | ✅                   |
+| 0 warnings                  | ✅                   |
+| 0 errors                    | ✅                   |
+| Final service restart       | ✅                   |
+| Final HTTP test             | ✅                   |
+| Final HTTPS test            | ✅                   |
+
+---
+
+# What was NOT done from the original AWS manual?
+
+There are **three important AWS-specific parts** that were not done because you implemented the practical on your Ubuntu VM.
+
+### 1. AWS EC2 Mantri server
+
+Original manual:
+
+```text
+Mantri
+172.31.3.91
+```
+
+You did not create/use that AWS EC2 target.
+
+Instead:
+
+```text
+teja
+192.168.56.101
+```
+
+was used.
+
+### 2. AWS Security Group
+
+The manual mentioned opening:
+
+```text
+22
+80
+443
+8080
+```
+
+in the EC2 Security Group.
+
+You did not do this because your target is a VirtualBox Ubuntu VM, not an EC2 instance.
+
+### 3. CloudWatch CPU/RAM
+
+The manual explains that agentless Nagios checks cannot directly monitor AWS CPU/RAM and recommends CloudWatch.
+
+You did not configure CloudWatch because your practical was performed locally.
+
+---
+
+# One more difference you should explain to faculty
+
+Your manual says:
+
+> AWS EC2 + Nagios Core Agentless Monitoring
+
+Your actual implementation is:
+
+> **Ubuntu VirtualBox + Nagios Core Agentless Monitoring**
+
+But the **monitoring architecture and Nagios functionality were successfully demonstrated**.
+
+Your current architecture is essentially:
+
+```text
+                    ┌──────────────────────────┐
+                    │     Ubuntu VM             │
+                    │     puppetmaster           │
+                    │     192.168.56.101        │
+                    │                          │
+                    │     Nagios Core 4.5.9     │
+                    │            │              │
+                    │       check plugins       │
+                    │            │              │
+                    │     ┌──────┴──────┐       │
+                    │     │             │       │
+                    │    HTTP          SSH      │
+                    │     │             │       │
+                    │    HTTPS          PING     │
+                    │     │                     │
+                    │ SSL Certificate            │
+                    └──────────┬────────────────┘
+                               │
+                         Postfix SMTP
+                               │
+                               ▼
+                       Gmail Notification
+```
+
+## Final conclusion
+
+So, **yes — the actual technical work required for the Nagios monitoring portion of your manual is completed**.
+
+The only parts you should **not claim you performed** are the AWS-specific EC2/Mantri, AWS Security Group, and CloudWatch portions.
+
+For your report, call it an **Ubuntu VM adaptation of the AWS Nagios practical**, rather than saying you actually monitored an AWS EC2 instance.
