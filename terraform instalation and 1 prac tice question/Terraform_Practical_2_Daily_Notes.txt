@@ -1,0 +1,332 @@
+TERRAFORM PRACTICAL 2 — DAILY NOTES
+
+TITLE
+
+Create a personalized student.txt file using Terraform local_file,
+display its path using an output block, and update the message by
+changing a variable value.
+
+QUESTION
+
+Write and execute a Terraform configuration to create a text file named
+student.txt containing a personalized welcome message.
+
+Requirements: 1. Define a variable named Purna with the default value
+“Student”. 2. Use the variable in this message: Hello Student, welcome
+to terraform practical 2. 3. Use the local_file resource to create
+student.txt. 4. Use an output block to display the file path. 5.
+Initialize, format, validate, plan and apply the Terraform
+configuration. 6. Change the variable’s default value to “Teja”. 7.
+Apply the updated configuration and verify that the file contains: Hello
+Teja, welcome to terraform practical 2.
+
+ENVIRONMENT
+
+Host OS : Windows Virtualization: Oracle VirtualBox Guest OS : Ubuntu
+Linux VM hostname : puppetmaster Terraform : v1.17.1 Project folder:
+~/terraform-project
+
+A. OPEN THE PROJECT
+
+cd ~/terraform-project
+
+B. CREATE THE TERRAFORM CONFIGURATION
+
+Open the file:
+
+nano main.tf
+
+Enter this configuration for the FIRST RUN (default value Student):
+
+variable “Purna” { type = string default = “Student” }
+
+resource “local_file” “student” { filename =
+“${path.module}/student.txt” content = “Hello ${var.Purna}, welcome to
+terraform practical 2.” }
+
+output “file_path” { value = local_file.student.filename }
+
+Save in Nano: Ctrl + O Enter Ctrl + X
+
+C. INITIALIZE TERRAFORM
+
+terraform init
+
+Purpose: Initializes the Terraform working directory and installs the
+required provider plugins. The local provider was already installed in
+this practical, so Terraform reused it.
+
+D. FORMAT AND VALIDATE
+
+terraform fmt terraform validate
+
+Expected validation result:
+
+Success! The configuration is valid.
+
+E. REVIEW THE EXECUTION PLAN
+
+terraform plan
+
+For a new student.txt resource, the plan should show one resource to
+add. If the earlier Practical 1 resource (local_file.project_info) is
+still in Terraform state but is no longer declared in main.tf, the plan
+may also show that old resource being destroyed.
+
+F. APPLY THE CONFIGURATION
+
+terraform apply
+
+Read the plan. If it is correct, type:
+
+yes
+
+Expected result for a new student.txt resource:
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+If the old project_info resource is also being removed, Terraform may
+instead report one resource added and one destroyed. This is expected
+when reusing the same working directory and state from Practical 1.
+
+G. VERIFY THE INITIAL FILE CONTENT
+
+cat student.txt
+
+Expected output:
+
+Hello Student, welcome to terraform practical 2.
+
+Display the output path:
+
+terraform output file_path
+
+Expected output:
+
+“./student.txt”
+
+H. CHANGE THE VARIABLE VALUE TO TEJA
+
+Open the configuration:
+
+nano main.tf
+
+Change ONLY the default value from:
+
+default = “Student”
+
+to:
+
+default = “Teja”
+
+The complete UPDATED main.tf must be:
+
+variable “Purna” { type = string default = “Teja” }
+
+resource “local_file” “student” { filename =
+“${path.module}/student.txt” content = “Hello ${var.Purna}, welcome to
+terraform practical 2.” }
+
+output “file_path” { value = local_file.student.filename }
+
+IMPORTANT: - Keep the variable name as Purna. - Change its value to
+Teja. - Keep the resource address as local_file.student. - Do not rename
+the resource to local_file.Teja. - Keep the output reference as
+local_file.student.filename.
+
+Save: Ctrl + O Enter Ctrl + X
+
+I. FORMAT, VALIDATE AND REVIEW THE UPDATE
+
+terraform fmt terraform validate terraform plan
+
+The plan should show that local_file.student must be replaced because
+the local_file provider treats a content change as a replacement.
+
+Expected plan summary:
+
+Plan: 1 to add, 0 to change, 1 to destroy.
+
+This replacement is normal for the local_file resource when its content
+changes.
+
+J. APPLY THE UPDATED CONFIGURATION
+
+terraform apply
+
+Review the plan and type:
+
+yes
+
+Expected result:
+
+Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
+
+K. VERIFY THE UPDATED FILE
+
+cat student.txt
+
+Expected final output:
+
+Hello Teja, welcome to terraform practical 2.
+
+Display the output path again:
+
+terraform output file_path
+
+Expected output:
+
+“./student.txt”
+
+L. USEFUL VERIFICATION COMMANDS
+
+Show the current Terraform configuration:
+
+cat main.tf
+
+Show the generated text file:
+
+cat student.txt
+
+Show Terraform outputs:
+
+terraform output
+
+Show Terraform state resources:
+
+terraform state list
+
+Show Terraform version:
+
+terraform version
+
+M. COMMON MISTAKES AND FIXES
+
+1.  Error: Reference to undeclared resource
+
+Cause: The resource name in the output block does not match the declared
+resource.
+
+Correct resource:
+
+resource “local_file” “student” {
+
+Correct output reference:
+
+value = local_file.student.filename
+
+2.  Terraform plans to create local_file.Teja and destroy
+    local_file.student
+
+Cause: The resource was incorrectly renamed from “student” to “Teja”.
+
+Fix: Keep the resource name as “student”. Change only:
+
+default = “Student”
+
+to:
+
+default = “Teja”
+
+3.  Command not found: Success!
+
+Cause: The text “Success! The configuration is valid.” is command
+output, not a terminal command.
+
+Fix: Do not type the expected output into the terminal. Run only:
+
+terraform validate
+
+4.  Terraform has no command named plannano
+
+Cause: Two commands were accidentally joined together.
+
+Correct commands must be entered separately:
+
+terraform plan nano main.tf
+
+5.  Terraform shows one resource to add and one to destroy
+
+Cause: The existing Terraform state may contain a resource from an
+earlier practical that is no longer declared in the current
+configuration.
+
+Action: Read the plan carefully before applying. Confirm that it is
+removing only the old resource you intend to stop managing.
+
+N. GITHUB MAINTENANCE
+
+Before committing, create a .gitignore file so Terraform’s local cache
+and state files are not accidentally committed.
+
+Create or open .gitignore:
+
+nano .gitignore
+
+Add:
+
+.terraform/ .tfstate .tfstate. crash.log crash..log *.tfplan
+
+Save and exit Nano.
+
+Keep main.tf, .terraform.lock.hcl, student.txt and .gitignore in the
+repository. Do not commit Terraform state files; they can contain
+sensitive infrastructure information.
+
+Check the Git working tree:
+
+git status
+
+If this folder is already a Git repository, stage the practical files:
+
+git add main.tf .terraform.lock.hcl student.txt .gitignore
+
+Commit the changes:
+
+git commit -m “Add Terraform Practical 2 student welcome file”
+
+If a Git remote named origin is already configured and the current
+branch is correct, push:
+
+git push origin HEAD
+
+If Git says this folder is not a repository, initialize it first:
+
+git init git add main.tf .terraform.lock.hcl student.txt .gitignore git
+commit -m “Add Terraform Practical 2 student welcome file”
+
+To connect a GitHub repository for the first time, add its actual remote
+URL (replace the placeholder):
+
+git remote add origin
+
+Then push the current branch:
+
+git push -u origin HEAD
+
+Do not type the angle-bracket placeholder literally. Use the URL of your
+own GitHub repository.
+
+O. FINAL RESULT
+
+Terraform was initialized successfully in Ubuntu running inside Oracle
+VirtualBox on a Windows host.
+
+The local_file resource created student.txt. The output block displayed
+the file path. The variable Purna was first set to Student and then
+changed to Teja. After applying the updated configuration, the file
+content was verified as:
+
+Hello Teja, welcome to terraform practical 2.
+
+PRACTICAL 2 STATUS CHECKLIST
+
+[ ] Terraform initialized [ ] Configuration formatted [ ] Configuration
+validated [ ] Terraform plan reviewed [ ] Initial configuration applied
+[ ] student.txt created [ ] Initial Student message verified [ ]
+Variable changed to Teja [ ] Updated plan reviewed [ ] Updated
+configuration applied [ ] Final Teja message verified [ ] Output file
+path verified [ ] Git ignore configured [ ] Changes committed and pushed
+(if using a GitHub remote)
+
+END OF PRACTICAL 2 NOTES

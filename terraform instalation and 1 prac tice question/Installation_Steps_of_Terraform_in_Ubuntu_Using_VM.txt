@@ -1,0 +1,189 @@
+INSTALLATION STEPS OF TERRAFORM IN UBUNTU USING VM
+
+1. ENVIRONMENT DETAILS
+
+Host operating system : Windows Virtualization : Oracle VirtualBox Guest
+operating system: Ubuntu Linux Terminal user : vboxuser VM hostname :
+puppetmaster
+
+Terraform was installed and configured inside the Ubuntu virtual
+machine. It was not necessary to install Terraform separately on Windows
+because the commands were executed inside Ubuntu.
+
+2. UPDATE UBUNTU PACKAGE LIST
+
+Open the Ubuntu terminal and run:
+
+sudo apt update
+
+To upgrade installed packages, run:
+
+sudo apt upgrade -y
+
+3. INSTALL REQUIRED PACKAGES
+
+Install wget and GPG:
+
+sudo apt install -y wget gpg
+
+Install Git, cURL, unzip and Nano:
+
+sudo apt install -y git curl unzip nano
+
+Verify Git:
+
+git –version
+
+Verify cURL:
+
+curl –version
+
+4. ADD THE HASHICORP GPG SIGNING KEY
+
+Run the following command to download and register the HashiCorp package
+signing key:
+
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg –dearmor -o
+/usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+5. ADD THE HASHICORP APT REPOSITORY
+
+Run this command to add the official HashiCorp repository for the Ubuntu
+release:
+
+echo “deb [arch=$(dpkg –print-architecture)
+signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg]
+https://apt.releases.hashicorp.com $(grep -oP ’(?<=UBUNTU_CODENAME=).*’
+/etc/os-release || lsb_release -cs) main” | sudo tee
+/etc/apt/sources.list.d/hashicorp.list
+
+6. INSTALL TERRAFORM
+
+Update the package list:
+
+sudo apt update
+
+Install Terraform:
+
+sudo apt install -y terraform
+
+7. VERIFY TERRAFORM INSTALLATION
+
+Run:
+
+terraform version
+
+Installation verification output in this setup:
+
+Terraform v1.17.1 on linux_amd64
+
+8. CREATE A TERRAFORM PROJECT DIRECTORY
+
+Create a directory and move into it:
+
+mkdir -p ~/terraform-project cd ~/terraform-project
+
+9. CREATE THE TERRAFORM CONFIGURATION FILE
+
+Create a file named main.tf:
+
+nano main.tf
+
+Enter the following Terraform configuration:
+
+terraform { required_version = “>= 1.0” }
+
+resource “local_file” “project_info” { filename =
+“${path.module}/project-info.txt” content = “My first Terraform project
+is working!” }
+
+Save the file in Nano: - Press Ctrl + O. - Press Enter. - Press Ctrl +
+X.
+
+10. INITIALIZE THE TERRAFORM PROJECT
+
+Run:
+
+terraform init
+
+This command initializes the working directory and downloads the
+required provider plugins. In this practical, Terraform downloaded the
+HashiCorp local provider.
+
+11. FORMAT THE CONFIGURATION
+
+Run:
+
+terraform fmt
+
+This command formats the Terraform configuration file according to
+standard Terraform formatting rules.
+
+12. VALIDATE THE CONFIGURATION
+
+Run:
+
+terraform validate
+
+Expected result:
+
+Success! The configuration is valid.
+
+13. PREVIEW THE INFRASTRUCTURE CHANGES
+
+Run:
+
+terraform plan
+
+Terraform displays the actions it intends to perform. In this practical,
+the plan showed:
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+14. APPLY THE TERRAFORM CONFIGURATION
+
+Run:
+
+terraform apply
+
+Review the proposed changes. When Terraform asks for confirmation, type:
+
+yes
+
+Expected result:
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+15. VERIFY THE GENERATED FILE
+
+Run:
+
+cat project-info.txt
+
+Expected output:
+
+My first Terraform project is working!
+
+16. RESULT
+
+Terraform was successfully installed and configured inside the Ubuntu
+virtual machine running on a Windows host system.
+
+The first Terraform project was initialized, formatted, validated,
+planned and applied successfully. The local_file resource created the
+project-info.txt file containing the specified message.
+
+17. IMPORTANT NOTES
+
+-   Run Terraform commands from the Ubuntu terminal in the project
+    directory.
+-   The local_file provider manages a file on the machine where
+    Terraform runs.
+-   This practical demonstrates local resource management; it does not
+    create AWS or other cloud infrastructure.
+-   Keep the .terraform.lock.hcl file with the project so that provider
+    selections can be reproduced.
+-   Do not run ‘sudo apt autoremove’ unless you have checked which
+    packages will be removed and confirmed they are no longer needed.
+
+END OF DOCUMENT
