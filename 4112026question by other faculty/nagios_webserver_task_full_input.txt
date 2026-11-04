@@ -1,0 +1,177 @@
+Question:
+create webserver name webserver 101 moniter currect usercurrent  lode total no of processes should visible in dashboard of nagious    now i havet o do this task give me commands to do this i am using windowes laptop and ubuntu in my vm
+
+Full Input:
+vboxuser@puppetmaster:~/terraform-project$ cd /usr/local/nagios/etc/objects/
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ sudo nano webserver.cfg
+[sudo: authenticate] Password:           
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ sudo cat webserver.cfg
+define host {
+    use                     linux-server
+    host_name               webserver
+    alias                   Webserver 101
+    address                 192.168.56.101
+    max_check_attempts     5
+    check_period            24x7
+    notification_interval  30
+    notification_period    24x7
+}
+
+define service {
+    use                     generic-service
+    host_name               webserver
+    service_description     Current Users
+    check_command           check_local_users!20!50
+}
+
+define service {
+    use                     generic-service
+    host_name               webserver
+    service_description     Current Load
+    check_command           check_local_load!5.0,4.0,3.0!10.0,6.0,4.0
+}
+
+define service {
+    use                     generic-service
+    host_name               webserver
+    service_description     Total Processes
+    check_command           check_local_procs!250!400!RSZDT
+}
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ sudo nano /usr/local/nagios/etc/nagios.cfg
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ sudo nano /usr/local/nagios/etc/nagios.cfg
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ add this cfg_file=/usr/local/nagios/etc/objects/webserver.cfg
+Command 'add' not found, but there are 16 similar ones.
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ grep -nE 'check_local_users|check_local_load|check_local_procs' /usr/local/nagios/etc/objects/commands.cfg
+83:    command_name    check_local_load
+91:    command_name    check_local_procs
+99:    command_name    check_local_users
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ ls -l /usr/lib/nagios/plugins/check_users
+ls -l /usr/lib/nagios/plugins/check_load
+ls -l /usr/lib/nagios/plugins/check_procs
+-rwxr-xr-x 1 root root 27160 Jan 26  2026 /usr/lib/nagios/plugins/check_users
+-rwxr-xr-x 1 root root 35416 Jan 26  2026 /usr/lib/nagios/plugins/check_load
+-rwxr-xr-x 1 root root 48184 Jan 26  2026 /usr/lib/nagios/plugins/check_procs
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+Nagios Core 4.5.9
+Copyright (c) 2009-present Nagios Core Development Team and Community Contributors
+Copyright (c) 1999-2009 Ethan Galstad
+Last Modified: 2024-12-19
+License: GPL
+
+Website: https://www.nagios.org
+Reading configuration data...
+   Read main config file okay...
+   Read object config files okay...
+
+Running pre-flight check on configuration data...
+
+Checking objects...
+	Checked 17 services.
+	Checked 4 hosts.
+	Checked 1 host groups.
+	Checked 0 service groups.
+	Checked 2 contacts.
+	Checked 2 contact groups.
+	Checked 24 commands.
+	Checked 5 time periods.
+	Checked 0 host escalations.
+	Checked 0 service escalations.
+Checking for circular paths...
+	Checked 4 hosts
+	Checked 0 service dependencies
+	Checked 0 host dependencies
+	Checked 5 timeperiods
+Checking global event handlers...
+Checking obsessive compulsive processor commands...
+Checking misc settings...
+
+Total Warnings: 0
+Total Errors:   0
+
+Things look okay - No serious problems were detected during the pre-flight check
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ sudo systemctl restart nagios
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ sudo systemctl status nagios
+● nagios.service - Nagios Core 4.5.9
+     Loaded: loaded (/usr/lib/systemd/system/nagios.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-11-03 11:21:05 UTC; 7s ago
+ Invocation: 92d8681c402b420fb8c78799d209ecb3
+       Docs: https://www.nagios.org/documentation
+    Process: 6439 ExecStartPre=/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg (code=exited, status=0/SUCCESS)
+    Process: 6441 ExecStart=/usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg (code=exited, status=0/SUCCESS)
+   Main PID: 6443 (nagios)
+      Tasks: 9 (limit: 2796)
+     Memory: 9.6M (peak: 10.4M)
+        CPU: 867ms
+     CGroup: /system.slice/nagios.service
+             ├─6443 /usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg
+             ├─6446 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6447 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6448 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6449 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6450 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6451 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6452 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             └─6453 /usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg
+
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Successfully registered manager as @wproc with query handler
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6446;pid=6446
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6447;pid=6447
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6448;pid=6448
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6450;pid=6450
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6449;pid=6449
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6451;pid=6451
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6452;pid=6452
+Nov 03 11:21:05 puppetmaster nagios[6443]: SERVICE FLAPPING ALERT: teja;HTTPS;STARTED; Service appears to have started flapping (20.8% change >= 20.0>
+Nov 03 11:21:06 puppetmaster nagios[6443]: Successfully launched command file worker with pid 6453
+lines 1-32/32 (END)...skipping...
+● nagios.service - Nagios Core 4.5.9
+     Loaded: loaded (/usr/lib/systemd/system/nagios.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-11-03 11:21:05 UTC; 7s ago
+ Invocation: 92d8681c402b420fb8c78799d209ecb3
+       Docs: https://www.nagios.org/documentation
+    Process: 6439 ExecStartPre=/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg (code=exited, status=0/SUCCESS)
+    Process: 6441 ExecStart=/usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg (code=exited, status=0/SUCCESS)
+   Main PID: 6443 (nagios)
+      Tasks: 9 (limit: 2796)
+     Memory: 9.6M (peak: 10.4M)
+        CPU: 867ms
+        CGroup: /system.slice/nagios.service
+             ├─6443 /usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg
+             ├─6446 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6447 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6448 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6449 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6450 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6451 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             ├─6452 /usr/local/nagios/bin/nagios --worker /usr/local/nagios/var/rw/nagios.qh
+             └─6453 /usr/local/nagios/bin/nagios -d /usr/local/nagios/etc/nagios.cfg
+
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Successfully registered manager as @wproc with query handler
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6446;pid=6446
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6447;pid=6447
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6448;pid=6448
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6450;pid=6450
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6449;pid=6449
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6451;pid=6451
+Nov 03 11:21:05 puppetmaster nagios[6443]: wproc: Registry request: name=Core Worker 6452;pid=6452
+Nov 03 11:21:06 puppetmaster nagios[6443]: Successfully launched command file worker with pid 6453
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+
+vboxuser@puppetmaster:/usr/local/nagios/etc/objects$ 
