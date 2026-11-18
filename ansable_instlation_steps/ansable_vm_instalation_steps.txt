@@ -1,0 +1,114 @@
+# ==========================================
+# ANSIBLE INSTALLATION STEPS IN VM UBUNTU
+# ==========================================
+
+# 1. CHECK UBUNTU VM IDENTITY
+whoami
+hostname
+hostnamectl
+pwd
+
+# 2. GO TO HOME DIRECTORY
+cd ~
+
+# 3. UPDATE AND UPGRADE UBUNTU
+sudo apt update && sudo apt upgrade -y
+
+# 4. INSTALL REQUIRED PACKAGE
+sudo apt install -y software-properties-common
+
+# 5. ADD ANSIBLE PPA
+sudo add-apt-repository --yes --update ppa:ansible/ansible
+
+# 6. INSTALL ANSIBLE
+sudo apt install -y ansible
+
+# 7. VERIFY INSTALLATION
+ansible --version
+which ansible
+apt policy ansible
+
+# 8. CREATE SEPARATE ANSIBLE DIRECTORY
+mkdir -p ~/ansible-setup
+cd ~/ansible-setup
+
+# 9. CREATE REQUIRED FOLDERS
+mkdir -p inventory playbooks group_vars host_vars logs
+
+# 10. CREATE LOCAL INVENTORY
+cat > inventory/hosts.ini <<'EOF'
+[local]
+localhost ansible_connection=local
+EOF
+
+# 11. CREATE ANSIBLE CONFIGURATION
+cat > ansible.cfg <<'EOF'
+[defaults]
+inventory = ./inventory/hosts.ini
+host_key_checking = False
+retry_files_enabled = False
+interpreter_python = auto_silent
+EOF
+
+# 12. DISPLAY INVENTORY
+cat inventory/hosts.ini
+
+# 13. DISPLAY CONFIGURATION
+cat ansible.cfg
+
+# 14. CHECK INVENTORY
+ansible-inventory --graph
+
+# 15. TEST ANSIBLE CONNECTION
+ansible all -m ping
+
+# 16. CREATE FIRST TEST PLAYBOOK
+cat > playbooks/test-connectivity.yml <<'EOF'
+---
+- name: Test Ansible on Ubuntu VM
+  hosts: local
+  gather_facts: true
+  tasks:
+    - name: Display VM hostname
+      ansible.builtin.debug:
+        msg: "Ansible is running on {{ inventory_hostname }}"
+
+    - name: Display Ubuntu information
+      ansible.builtin.debug:
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+EOF
+
+# 17. CHECK PLAYBOOK SYNTAX
+ansible-playbook playbooks/test-connectivity.yml --syntax-check
+
+# 18. EXECUTE PLAYBOOK
+ansible-playbook playbooks/test-connectivity.yml
+
+# 19. DISPLAY FINAL DIRECTORY STRUCTURE
+find ~/ansible-setup -maxdepth 2 -type f -print
+
+# 20. FINAL INSTALLATION VERIFICATION
+ansible --version
+ansible all -m ping
+ansible-playbook playbooks/test-connectivity.yml
+
+# ==========================================
+# ANSIBLE SETUP COMPLETED
+# ==========================================
+echo "ANSIBLE INSTALLATION AND LOCAL TEST COMPLETED"
+echo "VM Hostname: $(hostname)"
+echo "VM Username: $(whoami)"
+echo "Working Directory: $(pwd)"
+
+
+
+
+
+
+================================================================================================================
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y software-properties-common
+sudo add-apt-repository --yes --update ppa:ansible/ansible
+sudo apt install -y ansible
+ansible --version
+==========================================================================
