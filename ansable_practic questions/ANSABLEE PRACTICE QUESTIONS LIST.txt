@@ -1,0 +1,226 @@
+2.Create Directories and Files with Ansible
+Step 1: Move to the Same Project Directory
+bash
+cd ~/ansible-practical
+You’ll reuse the same inventory.ini:
+[local]
+localhost ansible_connection=local
+Step 2: Create the Playbook
+bash
+nano files.yml
+yaml
+---
+- name: Practical 2 - Create Directory and Files
+  hosts: local
+gather_facts: no
+
+  vars:
+student_name: "Rahul"
+base_dir: "/tmp/ansible_demo"
+
+  tasks:
+    - name: Create a directory
+ansible.builtin.file:
+        path: "{{ base_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create a file with content
+ansible.builtin.copy:
+dest: "{{ base_dir }}/welcome.txt"
+        content: |
+          Hello {{ student_name }}!
+          This file was created using Ansible.
+        mode: '0644'
+
+    - name: Create an empty file
+ansible.builtin.file:
+        path: "{{ base_dir }}/empty.txt"
+        state: touch
+
+    - name: Show a confirmation message
+ansible.builtin.debug:
+msg: "Files created successfully in {{ base_dir }}"
+Change student_name to anything you like.
+Step 3: Check the Syntax
+bash
+ansible-playbook -i inventory.ini files.yml --syntax-check
+Step 4: Run the Playbook
+bash
+ansible-playbook -i inventory.ini files.yml
+Expected Output
+PLAY [Practical 2 - Create Directory and Files] ************************
+
+TASK [Create a directory] **********************************************
+changed: [localhost]
+
+TASK [Create a file with content] **************************************
+changed: [localhost]
+
+TASK [Create an empty file] ********************************************
+changed: [localhost]
+
+TASK [Show a confirmation message] *************************************
+ok: [localhost] => {
+    "msg": "Files created successfully in /tmp/ansible_demo"
+}
+
+PLAY RECAP *************************************************************
+localhost   : ok=4    changed=3    unreachable=0    failed=0    skipped=0
+Step 5: Verify the Result
+bash
+ls -l /tmp/ansible_demo
+cat /tmp/ansible_demo/welcome.txt
+Step 6: Demonstrate Idempotency
+Run the same playbook again:
+bash
+ansible-playbook -i inventory.ini files.yml
+Now the recap shows changed=1 (only the touch task updates the timestamp), or changed=0 for the others. Explain to students: Ansible only changes what needs to change.
+Step 7: Cleanup (Optional Task)
+Create cleanup.yml:
+yaml
+---
+- name: Cleanup
+  hosts: local
+gather_facts: no
+
+  tasks:
+    - name: Remove the demo directory
+ansible.builtin.file:
+        path: /tmp/ansible_demo
+        state: absent
+bash
+ansible-playbook -i inventory.ini cleanup.yml
+Practical 3: Install and Start a Web Server (Apache/Nginx) with Ansible
+Step 1: Move to the Project Directory
+bash
+cd ~/ansible-practical
+Reuse the same inventory.ini:
+ini
+[local]
+localhost ansible_connection=local
+Step 2: Create the Playbook
+bash
+nano webserver.yml
+For Ubuntu/Debian (Nginx):
+yaml
+---
+- name: Practical 3 - Install and Configure Web Server
+  hosts: local
+  become: yes
+gather_facts: no
+
+  tasks:
+    - name: Update apt cache
+ansible.builtin.apt:
+update_cache: yes
+cache_valid_time: 3600
+
+    - name: Install Nginx
+ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Start and enable Nginx service
+ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Deploy a custom web page
+ansible.builtin.copy:
+dest: /var/www/html/index.html
+        content: |
+<html>
+<head><title>Ansible Practical</title></head>
+<body>
+<h1>Hello from Ansible!</h1>
+<p>This web page was deployed using Ansible.</p>
+</body>
+</html>
+        mode: '0644'
+
+    - name: Show completion message
+ansible.builtin.debug:
+msg: "Web server is running. Open http://localhost in your browser."
+For RHEL/CentOS/Fedora (Apache): replace the first three tasks and the page path:
+yaml
+    - name: Install Apache
+ansible.builtin.dnf:
+        name: httpd
+        state: present
+
+    - name: Start and enable Apache service
+ansible.builtin.service:
+        name: httpd
+        state: started
+        enabled: yes
+
+    - name: Deploy a custom web page
+ansible.builtin.copy:
+dest: /var/www/html/index.html
+        content: "<h1>Hello from Ansible!</h1>"
+Step 3: Check the Syntax
+bash
+ansible-playbook -i inventory.ini webserver.yml --syntax-check
+Step 4: Run the Playbook
+become: yes needs sudo privileges, so add --ask-become-pass (or -K):
+bash
+ansible-playbook -i inventory.ini webserver.yml --ask-become-pass
+Enter your sudo password when prompted.
+Expected Output
+PLAY [Practical 3 - Install and Configure Web Server] ******************
+
+TASK [Update apt cache] ************************************************
+changed: [localhost]
+
+TASK [Install Nginx] ***************************************************
+changed: [localhost]
+
+TASK [Start and enable Nginx service] **********************************
+ok: [localhost]
+
+TASK [Deploy a custom web page] ****************************************
+changed: [localhost]
+
+TASK [Show completion message] *****************************************
+ok: [localhost] => {
+    "msg": "Web server is running. Open http://localhost in your browser."
+}
+
+PLAY RECAP *************************************************************
+localhost   : ok=5    changed=3    unreachable=0    failed=0    skipped=0
+Note: “Start and enable” may show changed instead of ok on some systems, since Nginx often starts automatically after installation.
+Step 5: Verify the Result
+bash
+systemctl status nginx
+curl http://localhost
+Or open http://localhost in a browser. Students will see the “Hello from Ansible!” page.
+Step 6: Demonstrate Idempotency
+Run the playbook a second time:
+bash
+ansible-playbook -i inventory.ini webserver.yml --ask-become-pass
+You should see changed=0, because everything is already in the desired state.
+Step 7: Cleanup (Optional)
+Create remove_web.yml:
+yaml
+---
+- name: Remove Web Server
+  hosts: local
+  become: yes
+gather_facts: no
+
+  tasks:
+    - name: Stop Nginx
+ansible.builtin.service:
+        name: nginx
+        state: stopped
+
+    - name: Remove Nginx
+ansible.builtin.apt:
+        name: nginx
+        state: absent
+        purge: yes
+bash
+ansible-playbook -i inventory.ini remove_web.yml --ask-become-pass
+
