@@ -1,0 +1,106 @@
+Ansible practice question 
+
+
+1)create a project directory
+
+mkdir ~/ansible_practical
+cd ~/ansible_practical
+
+
+nano inventory .ini
+[local]
+localhost ansible_connection = local
+nano hello.yml
+
+
+
+add the content of :
+name:my first ansible practical
+host: local
+gather_facts = no
+
+task:
+name:prit hello work message
+ansible.buildin.debug:
+msg: "Hello world! This is my first ansible practical."
+
+4)check the syntax
+ansible_laybook -I inventory.ini hello.yml --syntax-check
+expected output:
+playbook: hello.yml
+=====================================================================================================
+=====================================================================================================
+
+vboxuser@puppetmaster:~$ ansible --version
+ansible [core 2.20.1]
+  config file = None
+  configured module search path = ['/home/vboxuser/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3/dist-packages/ansible
+  ansible collection location = /home/vboxuser/.ansible/collections:/usr/share/ansible/collections
+  executable location = /usr/bin/ansible
+  python version = 3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0] (/usr/bin/python3)
+  jinja version = 3.1.6
+  pyyaml version = 6.0.3 (with libyaml v0.2.5)
+vboxuser@puppetmaster:~$ mkdir -p ~/ansible_practical
+vboxuser@puppetmaster:~$ cd ~/ansible_practical
+vboxuser@puppetmaster:~/ansible_practical$ nano inventory.ini
+vboxuser@puppetmaster:~/ansible_practical$ cat inventory.ini
+[local]
+localhost ansible_connection=local
+vboxuser@puppetmaster:~/ansible_practical$ nano hello.yml
+vboxuser@puppetmaster:~/ansible_practical$ cat hello.yml
+---
+- name: My first Ansible practical
+  hosts: local
+  gather_facts: no
+
+  tasks:
+    - name: Print hello world message
+      ansible.builtin.debug:
+        msg: "Hello world! This is my first Ansible practical."
+vboxuser@puppetmaster:~/ansible_practical$ ls -l
+total 8
+-rw-rw-r-- 1 vboxuser vboxuser 214 Nov 19 11:14 hello.yml
+-rw-rw-r-- 1 vboxuser vboxuser  43 Nov 19 11:13 inventory.ini
+vboxuser@puppetmaster:~/ansible_practical$ ansible-playbook -i inventory.ini hello.yml --syntax-check
+
+playbook: hello.yml
+vboxuser@puppetmaster:~/ansible_practical$ ansible-playbook -i inventory.ini hello.yml
+
+PLAY [My first Ansible practical] *****************************************************************************************************
+
+TASK [Print hello world message] ******************************************************************************************************
+ok: [localhost] => {
+    "msg": "Hello world! This is my first Ansible practical."
+}
+
+PLAY RECAP ****************************************************************************************************************************
+localhost                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+vboxuser@puppetmaster:~/ansible_practical$ 
+      now make the txt file and keep title of ansable practice 1st program hello world prining and add thin exactly without any changes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

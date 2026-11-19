@@ -1,0 +1,101 @@
+ansable 2nd question in practice 
+vboxuser@puppetmaster:~$ cd ~/ansible_practical
+vboxuser@puppetmaster:~/ansible_practical$ nano inventory.ini
+vboxuser@puppetmaster:~/ansible_practical$ cat inventory.ini
+[local]
+localhost ansible_connection=local
+vboxuser@puppetmaster:~/ansible_practical$ nano files.yml
+vboxuser@puppetmaster:~/ansible_practical$ cat files.yml
+---
+- name: Practical 2 - Create Directory and Files
+  hosts: local
+  gather_facts: no
+
+  vars:
+    student_name: "Teja"
+    base_dir: "/tmp/ansible_demo"
+
+  tasks:
+    - name: Create a directory
+      ansible.builtin.file:
+        path: "{{ base_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create a file with content
+      ansible.builtin.copy:
+        dest: "{{ base_dir }}/welcome.txt"
+        content: |
+          Hello {{ student_name }}!
+          This file was created using Ansible.
+        mode: '0644'
+
+    - name: Create an empty file
+      ansible.builtin.file:
+        path: "{{ base_dir }}/empty.txt"
+        state: touch
+
+    - name: Show a confirmation message
+      ansible.builtin.debug:
+        msg: "Files created successfully in {{ base_dir }}"
+vboxuser@puppetmaster:~/ansible_practical$ ansible-playbook -i inventory.ini files.yml --syntax-check
+
+playbook: files.yml
+vboxuser@puppetmaster:~/ansible_practical$ ansible-playbook -i inventory.ini files.yml
+
+PLAY [Practical 2 - Create Directory and Files] **************************************************************************************************************************************************************************************
+
+TASK [Create a directory] ************************************************************************************************************************************************************************************************************
+[WARNING]: Host 'localhost' is using the discovered Python interpreter at '/usr/bin/python3.14', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.20/reference_appendices/interpreter_discovery.html for more information.
+changed: [localhost]
+
+TASK [Create a file with content] ****************************************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Create an empty file] **********************************************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Show a confirmation message] ***************************************************************************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "Files created successfully in /tmp/ansible_demo"
+}
+
+PLAY RECAP ***************************************************************************************************************************************************************************************************************************
+localhost                  : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+vboxuser@puppetmaster:~/ansible_practical$ ls -l /tmp/ansible_demo
+total 4
+-rw-rw-r-- 1 vboxuser vboxuser  0 Nov 19 12:06 empty.txt
+-rw-r--r-- 1 vboxuser vboxuser 49 Nov 19 12:06 welcome.txt
+vboxuser@puppetmaster:~/ansible_practical$ ls -l /tmp/ansible_demo
+total 4
+-rw-rw-r-- 1 vboxuser vboxuser  0 Nov 19 12:06 empty.txt
+-rw-r--r-- 1 vboxuser vboxuser 49 Nov 19 12:06 welcome.txt
+vboxuser@puppetmaster:~/ansible_practical$ cat /tmp/ansible_demo/welcome.txt
+Hello Teja!
+This file was created using Ansible.
+vboxuser@puppetmaster:~/ansible_practical$ cat /tmp/ansible_demo/empty.txt
+vboxuser@puppetmaster:~/ansible_practical$ ansible-playbook -i inventory.ini files.yml
+
+PLAY [Practical 2 - Create Directory and Files] **************************************************************************************************************************************************************************************
+
+TASK [Create a directory] ************************************************************************************************************************************************************************************************************
+[WARNING]: Host 'localhost' is using the discovered Python interpreter at '/usr/bin/python3.14', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.20/reference_appendices/interpreter_discovery.html for more information.
+ok: [localhost]
+
+TASK [Create a file with content] ****************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Create an empty file] **********************************************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Show a confirmation message] ***************************************************************************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "Files created successfully in /tmp/ansible_demo"
+}
+
+PLAY RECAP ***************************************************************************************************************************************************************************************************************************
+localhost                  : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+vboxuser@puppetmaster:~/ansible_practical$ 
+
